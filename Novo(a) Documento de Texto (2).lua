@@ -1,234 +1,60 @@
 --[[
-    Novo Sistema de Replicação Limpo
+    Script de Multiplicador de Sorte (ServerScript)
     
-    Este script foi criado do zero, usando os princípios do Replicador anterior
-    mas com uma estrutura mais simples e direta. Ele foca na captura e
-    replicação de movimentos, sons e criação de objetos de forma segura,
-    evitando qualquer função que possa ser interpretada como vulnerável.
+    Este script de servidor aumenta a sorte de todo o servidor em 4x.
+    Ele demonstra um sistema simples que você pode adaptar para a sua
+    necessidade, como aumentar a chance de um item raro ser gerado.
     
-    Características:
-    - Interface de usuário (GUI) minimalista para controle.
-    - Captura e reprodução de movimentos do jogador.
-    - Captura e reprodução de sons.
-    - Captura de criação de instâncias (sem replicação).
-    - Totalmente seguro, sem "hooking" ou leitura/escrita de arquivos.
+    Coloque este script em ServerScriptService.
 ]]--
 
 -- Obtém os serviços essenciais do jogo
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local localPlayer = Players.LocalPlayer
+local Players = game:GetService("Players")
 
--- Armazena os eventos gravados
-local recordedEvents = {}
-local isRecording = false
-local isReplaying = false
+-- Define o multiplicador de sorte do servidor.
+-- A sorte é um conceito programado, não um atributo nativo do Roblox.
+-- Aqui, nós a representamos como um multiplicador.
+local LUCK_MULTIPLIER = 4
 
--- Variáveis para rastreamento de estado
-local lastPosition = nil
-local lastCameraCFrame = nil
+-- Define a chance base de um evento "sortudo" acontecer (ex: 1 em 100)
+local BASE_LUCKY_CHANCE = 100
 
--- Função para criar a interface do usuário (GUI)
-local function createGUI()
-    local playerGui = localPlayer:WaitForChild("PlayerGui")
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "CleanReplicatorGUI"
-    screenGui.Parent = playerGui
-
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 250, 0, 150)
-    mainFrame.Position = UDim2.new(0, 10, 0, 10)
-    mainFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
-    mainFrame.BorderSizePixel = 2
-    mainFrame.BorderColor3 = Color3.new(0, 1, 0)
-    mainFrame.Parent = screenGui
+-- Função para criar uma parte com uma cor aleatória
+local function createRandomPart()
+    -- Cria uma nova parte
+    local newPart = Instance.new("Part")
     
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 25)
-    title.BackgroundTransparency = 1
-    title.Text = "🎬 Replicador Limpo"
-    title.TextColor3 = Color3.new(0, 1, 0)
-    title.TextSize = 14
-    title.Font = Enum.Font.SourceSansBold
-    title.Parent = mainFrame
+    -- Define as propriedades básicas da parte
+    newPart.Size = Vector3.new(2, 2, 2)
+    newPart.Position = Vector3.new(math.random(-50, 50), 10, math.random(-50, 50))
+    newPart.Anchored = true
+    newPart.Parent = Workspace
     
-    local statusLabel = Instance.new("TextLabel")
-    statusLabel.Name = "StatusLabel"
-    statusLabel.Size = UDim2.new(1, 0, 0, 20)
-    statusLabel.Position = UDim2.new(0, 0, 0, 30)
-    statusLabel.BackgroundTransparency = 1
-    statusLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-    statusLabel.TextSize = 12
-    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-    statusLabel.Text = "Status: Parado"
-    statusLabel.Parent = mainFrame
-
-    -- Botões de controle
-    local recordButton = Instance.new("TextButton")
-    recordButton.Name = "RecordButton"
-    recordButton.Size = UDim2.new(1, -10, 0, 25)
-    recordButton.Position = UDim2.new(0, 5, 0, 55)
-    recordButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    recordButton.Text = "▶️ Iniciar Gravação"
-    recordButton.TextColor3 = Color3.new(1, 1, 1)
-    recordButton.Parent = mainFrame
+    -- Gera um número aleatório de 1 a 100 para determinar a chance de sorte.
+    local luckyRoll = math.random(1, BASE_LUCKY_CHANCE)
     
-    local stopButton = Instance.new("TextButton")
-    stopButton.Name = "StopButton"
-    stopButton.Size = UDim2.new(1, -10, 0, 25)
-    stopButton.Position = UDim2.new(0, 5, 0, 85)
-    stopButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    stopButton.Text = "⏹️ Parar"
-    stopButton.TextColor3 = Color3.new(1, 1, 1)
-    stopButton.Parent = mainFrame
-
-    local replayButton = Instance.new("TextButton")
-    replayButton.Name = "ReplayButton"
-    replayButton.Size = UDim2.new(1, -10, 0, 25)
-    replayButton.Position = UDim2.new(0, 5, 0, 115)
-    replayButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    replayButton.Text = "🔄 Iniciar Replicação"
-    replayButton.TextColor3 = Color3.new(1, 1, 1)
-    replayButton.Parent = mainFrame
+    -- Calcula a nova chance sortuda com o multiplicador.
+    -- Por exemplo, se a chance base for 100, a nova chance será 100 / 4 = 25.
+    -- Isso significa que você precisa tirar um número entre 1 e 25 para ser "sortudo".
+    local newLuckyChance = BASE_LUCKY_CHANCE / LUCK_MULTIPLIER
     
-    return mainFrame, statusLabel
-end
-
--- Função para capturar eventos e salvá-los
-local function captureEvent(eventType, data)
-    if not isRecording then return end
-    
-    local event = {
-        type = eventType,
-        data = data,
-        timestamp = os.time()
-    }
-    table.insert(recordedEvents, event)
-    print("Evento capturado: " .. eventType)
-end
-
--- Lógica de captura principal
-local function startCapture()
-    print("▶️ Captura iniciada.")
-    lastPosition = (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) and localPlayer.Character.HumanoidRootPart.Position or nil
-    lastCameraCFrame = Workspace.CurrentCamera.CFrame
-    
-    -- Captura de movimento e câmera
-    RunService.Heartbeat:Connect(function()
-        if not isRecording then return end
-        
-        local currentPosition = (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) and localPlayer.Character.HumanoidRootPart.Position or nil
-        if currentPosition and lastPosition and (currentPosition - lastPosition).Magnitude > 0.1 then
-            captureEvent("Movement", { Position = currentPosition })
-            lastPosition = currentPosition
-        end
-        
-        local currentCameraCFrame = Workspace.CurrentCamera.CFrame
-        if currentCameraCFrame ~= lastCameraCFrame then
-            captureEvent("Camera", { CFrame = currentCameraCFrame })
-            lastCameraCFrame = currentCameraCFrame
-        end
-    end)
-    
-    -- Captura de sons
-    for _, sound in ipairs(Workspace:GetDescendants()) do
-        if sound:IsA("Sound") then
-            sound.Played:Connect(function()
-                captureEvent("Sound", { SoundId = sound.SoundId, Volume = sound.Volume })
-            end)
-        end
+    -- Verifica se o evento sortudo aconteceu.
+    if luckyRoll <= newLuckyChance then
+        -- Se o evento sortudo aconteceu, a cor da parte será dourada.
+        newPart.Color = Color3.new(1, 0.843137, 0) -- Cor dourada
+        print("🎉 Evento sortudo ativado! Uma parte dourada foi criada.")
+    else
+        -- Se não for sortudo, a cor será aleatória.
+        newPart.Color = Color3.new(math.random(), math.random(), math.random())
     end
-    Workspace.DescendantAdded:Connect(function(descendant)
-        if descendant:IsA("Sound") then
-            descendant.Played:Connect(function()
-                captureEvent("Sound", { SoundId = descendant.SoundId, Volume = descendant.Volume })
-            end)
-        end
-    end)
-    
-    -- Captura de criação de instâncias
-    Workspace.DescendantAdded:Connect(function(descendant)
-        captureEvent("InstanceCreated", { Class = descendant.ClassName, Path = descendant:GetFullName() })
-    end)
 end
 
--- Lógica de replicação principal
-local function startReplay()
-    print("🔄 Replicação iniciada.")
-    isReplaying = true
+-- Loop principal do script
+while true do
+    -- Aguarda 5 segundos antes de executar a função novamente
+    wait(5)
     
-    -- Ordena os eventos por tempo
-    table.sort(recordedEvents, function(a, b) return a.timestamp < b.timestamp end)
-    
-    local lastTimestamp = nil
-    for _, event in ipairs(recordedEvents) do
-        if not isReplaying then break end
-        
-        if lastTimestamp then
-            wait(event.timestamp - lastTimestamp)
-        end
-        
-        if event.type == "Movement" then
-            local character = localPlayer.Character
-            if character and character:FindFirstChild("HumanoidRootPart") then
-                character.HumanoidRootPart.CFrame = CFrame.new(event.data.Position)
-            end
-        elseif event.type == "Camera" then
-            Workspace.CurrentCamera.CFrame = event.data.CFrame
-        elseif event.type == "Sound" then
-            local sound = Instance.new("Sound")
-            sound.SoundId = event.data.SoundId
-            sound.Volume = event.data.Volume
-            sound.Parent = Workspace
-            sound:Play()
-            sound.Ended:Connect(function() sound:Destroy() end)
-        end
-        
-        lastTimestamp = event.timestamp
-    end
-    
-    isReplaying = false
-    print("✅ Replicação concluída.")
+    -- Chama a função para criar uma nova parte
+    createRandomPart()
 end
-
--- Função principal de inicialização
-local function main()
-    -- Limpa GUIs antigas
-    for _, child in ipairs(localPlayer.PlayerGui:GetChildren()) do
-        if child.Name == "CleanReplicatorGUI" then
-            child:Destroy()
-        end
-    end
-
-    local guiFrame, statusLabel = createGUI()
-    
-    guiFrame.RecordButton.MouseButton1Click:Connect(function()
-        isRecording = true
-        isReplaying = false
-        recordedEvents = {}
-        statusLabel.Text = "Status: Gravando..."
-    end)
-    
-    guiFrame.StopButton.MouseButton1Click:Connect(function()
-        isRecording = false
-        isReplaying = false
-        statusLabel.Text = "Status: Parado"
-        print("⏹️ Gravação parada. Eventos salvos: " .. #recordedEvents)
-    end)
-    
-    guiFrame.ReplayButton.MouseButton1Click:Connect(function()
-        if #recordedEvents > 0 then
-            isRecording = false
-            startReplay()
-            statusLabel.Text = "Status: Replicando..."
-        else
-            warn("⚠️ Nenhum evento gravado para replicar.")
-        end
-    end)
-    
-    startCapture()
-end
-
--- Inicia o script
-main()
