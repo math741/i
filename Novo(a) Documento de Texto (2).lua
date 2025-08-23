@@ -6,16 +6,11 @@
     propriedades, criação/destruição de instâncias e muito mais.
     Ele é projetado para replicar com alta precisão eventos complexos
     como os "brainrots".
+    
+    ATUALIZAÇÃO: As funcionalidades de salvar e carregar arquivos foram
+    removidas para evitar o erro de vulnerabilidade que ocorre em alguns
+    executores. O script agora é mais seguro e compatível.
 ]]--
-
--- Verifica se o replicador já está ativo para evitar duplicatas.
-if _G.ReplicatorActive then 
-    warn("⚠️ Replicador já está ativo!")
-    return 
-end
-_G.ReplicatorActive = true
-
-print("🚀 Iniciando Sistema de Replicação Avançada...")
 
 -- Obtém os serviços essenciais do jogo.
 local RunService = game:GetService("RunService")
@@ -443,39 +438,6 @@ function ControlGUI:create()
         ReplicatorCore:clearData()
     end)
     yPos = yPos + 35
-
-    local saveButton = Instance.new("TextButton")
-    saveButton.Size = UDim2.new(1, -10, 0, 30)
-    saveButton.Position = UDim2.new(0, 5, 0, yPos)
-    saveButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    saveButton.Text = "💾 Salvar Dados"
-    saveButton.TextColor3 = Color3.new(1, 1, 1)
-    saveButton.Parent = mainFrame
-    saveButton.MouseButton1Click:Connect(function()
-        -- Implementa o salvamento em um arquivo local, uma funcionalidade poderosa.
-        local json = game:GetService("HttpService"):JSONEncode(ReplicatorCore.RecordedEvents)
-        writefile("ReplicatorData.json", json)
-        print("💾 Dados salvos em 'ReplicatorData.json'.")
-    end)
-    yPos = yPos + 35
-    
-    local loadButton = Instance.new("TextButton")
-    loadButton.Size = UDim2.new(1, -10, 0, 30)
-    loadButton.Position = UDim2.new(0, 5, 0, yPos)
-    loadButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    loadButton.Text = "📂 Carregar Dados"
-    loadButton.TextColor3 = Color3.new(1, 1, 1)
-    loadButton.Parent = mainFrame
-    loadButton.MouseButton1Click:Connect(function()
-        -- Carrega dados de um arquivo local.
-        local json = readfile("ReplicatorData.json")
-        if json then
-            ReplicatorCore.RecordedEvents = game:GetService("HttpService"):JSONDecode(json)
-            print("📂 Dados carregados com sucesso!")
-        else
-            warn("⚠️ Arquivo 'ReplicatorData.json' não encontrado.")
-        end
-    end)
     
     self.gui = screenGui
 end
@@ -499,6 +461,9 @@ end
     FUNÇÃO DE INICIALIZAÇÃO PRINCIPAL
 ]]--
 local function Initialize()
+    local oldGui = localPlayer.PlayerGui:FindFirstChild("ReplicatorGUI")
+    if oldGui then oldGui:Destroy() end
+
     print("=" .. string.rep("=", 50) .. "=")
     print("🎬 SISTEMA DE REPLICAÇÃO AVANÇADO ATIVO")
     print("=" .. string.rep("=", 50) .. "=")
@@ -522,7 +487,6 @@ end
     LIMPEZA
 ]]--
 game:BindToClose(function()
-    _G.ReplicatorActive = false
     if ControlGUI.gui then
         ControlGUI.gui:Destroy()
     end
