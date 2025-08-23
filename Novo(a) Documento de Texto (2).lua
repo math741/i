@@ -1,442 +1,234 @@
 --[[
-    Sistema Avançado de Replicação para Delta Executor
+    Novo Sistema de Replicação Limpo
     
-    Este script é uma versão aprimorada e mais poderosa do Replicador.
-    Ele captura e reproduz não apenas eventos, mas também mudanças em
-    propriedades, criação/destruição de instâncias e muito mais.
-    Ele é projetado para replicar com alta precisão eventos complexos
-    como os "brainrots".
+    Este script foi criado do zero, usando os princípios do Replicador anterior
+    mas com uma estrutura mais simples e direta. Ele foca na captura e
+    replicação de movimentos, sons e criação de objetos de forma segura,
+    evitando qualquer função que possa ser interpretada como vulnerável.
     
-    ATUALIZAÇÃO: As funcionalidades de salvar e carregar arquivos foram
-    removidas para evitar o erro de vulnerabilidade que ocorre em alguns
-    executores. O script agora é mais seguro e compatível.
-    
-    NOVOS REPAROS: O rastreamento de RemoteEvents e RemoteFunctions
-    foi removido, pois esta funcionalidade de "hooking" estava causando o
-    erro de "função vulnerável". O script agora é totalmente seguro e
-    funcional, mas não irá replicar eventos remotos.
+    Características:
+    - Interface de usuário (GUI) minimalista para controle.
+    - Captura e reprodução de movimentos do jogador.
+    - Captura e reprodução de sons.
+    - Captura de criação de instâncias (sem replicação).
+    - Totalmente seguro, sem "hooking" ou leitura/escrita de arquivos.
 ]]--
 
--- Obtém os serviços essenciais do jogo.
+-- Obtém os serviços essenciais do jogo
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-local SoundService = game:GetService("SoundService")
 local localPlayer = Players.LocalPlayer
 
--- Define os módulos do script.
-local ReplicatorCore = {}
-local UniversalCapture = {}
-local ReplayEngine = {}
-local ControlGUI = {}
+-- Armazena os eventos gravados
+local recordedEvents = {}
+local isRecording = false
+local isReplaying = false
 
---[[
-    MÓDULO: ReplicatorCore
-    
-    Gerencia o estado global do sistema (gravação/reprodução).
-]]--
-function ReplicatorCore:init()
-    self.IsRecording = true
-    self.IsReplaying = false
-    self.RecordedEvents = {}
-end
+-- Variáveis para rastreamento de estado
+local lastPosition = nil
+local lastCameraCFrame = nil
 
-function ReplicatorCore:startRecording()
-    self.IsRecording = true
-    self.IsReplaying = false
-    print("▶️ Gravação iniciada.")
-end
-
-function ReplicatorCore:stopRecording()
-    self.IsRecording = false
-    print("⏹️ Gravação parada.")
-end
-
-function ReplicatorCore:startReplay(events, speed)
-    if self.IsReplaying then
-        warn("⚠️ Já está em modo de replicação!")
-        return
-    end
-    self.IsRecording = false
-    self.IsReplaying = true
-    self.EventsToReplay = events or {}
-    self.ReplaySpeed = speed or 1.0
-    print("▶️ Replicação iniciada.")
-end
-
-function ReplicatorCore:stopReplay()
-    self.IsReplaying = false
-    print("⏹️ Replicação parada.")
-end
-
-function ReplicatorCore:clearData()
-    self.RecordedEvents = {}
-    print("🗑️ Dados de replicação limpos.")
-end
-
-ReplicatorCore:init()
-
---[[
-    MÓDULO: UniversalCapture
-    
-    Responsável por capturar todos os eventos e alterações no jogo.
-]]--
-UniversalCapture.Filters = {
-    -- Filtros para ignorar propriedades desnecessárias.
-    ignore_properties = {
-        "Color3", "BrickColor", "Color", "Transparency", "CanCollide",
-        "Material", "Reflectance", "SpecularColor", "StudsPerTileU", "StudsPerTileV"
-    }
-}
-
--- Captura e armazena um evento.
-function UniversalCapture:CaptureEvent(eventType, data)
-    if not ReplicatorCore.IsRecording then return end
-    
-    local event = {
-        type = eventType,
-        data = data,
-        timestamp = tick(),
-        player = localPlayer.Name
-    }
-    
-    table.insert(ReplicatorCore.RecordedEvents, event)
-    
-    print(string.format("📊 [%s] Evento capturado: %s", eventType:upper(), tostring(data.name or "Desconhecido")))
-end
-
--- Rastreia e captura a criação e destruição de instâncias.
-function UniversalCapture:InstanceTracker()
-    local function captureInstanceEvent(instance, eventType)
-        local data = {
-            name = instance.Name,
-            class = instance.ClassName,
-            path = instance:GetFullName()
-        }
-        
-        -- Captura propriedades importantes no momento da criação.
-        if eventType == "InstanceCreated" then
-            data.position = (instance:IsA("BasePart") or instance:IsA("Model")) and tostring(instance.Position) or nil
-            data.cframe = (instance:IsA("BasePart") or instance:IsA("Model")) and tostring(instance.CFrame) or nil
-        end
-        
-        self:CaptureEvent(eventType, data)
-    end
-    
-    -- Conecta aos eventos de adição/remoção de descendentes.
-    local function setupDescendantListeners(parent)
-        parent.DescendantAdded:Connect(function(descendant)
-            captureInstanceEvent(descendant, "InstanceCreated")
-        end)
-        
-        parent.DescendantRemoving:Connect(function(descendant)
-            captureInstanceEvent(descendant, "InstanceDestroyed")
-        end)
-    end
-    
-    setupDescendantListeners(Workspace)
-    setupDescendantListeners(ReplicatedStorage)
-    setupDescendantListeners(Lighting)
-    
-    print("📦 Rastreamento de instâncias ativado.")
-end
-
--- O módulo RemoteHooker foi removido para resolver o problema de vulnerabilidade.
-
--- Rastreia mudanças de propriedades do jogador e de sua câmera.
-function UniversalCapture:PropertyTracker()
-    local lastPlayerState = {}
-    local trackedProperties = {"Health", "WalkSpeed", "JumpPower", "DisplayName", "TeamColor"}
-    
-    local function trackState()
-        local player = localPlayer
-        local character = player.Character
-        
-        local state = {
-            position = character and character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position or Vector3.new(0,0,0),
-            cframe = character and character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.CFrame or CFrame.new(),
-            cameraCFrame = Workspace.CurrentCamera.CFrame,
-            properties = {}
-        }
-        
-        for _, prop in ipairs(trackedProperties) do
-            if player[prop] ~= nil and player[prop] ~= lastPlayerState[prop] then
-                state.properties[prop] = player[prop]
-            end
-        end
-        
-        if lastPlayerState.position then
-            local distance = (state.position - lastPlayerState.position).Magnitude
-            if distance > 0.1 then
-                self:CaptureEvent("Movement", {
-                    position = {x = state.position.X, y = state.position.Y, z = state.position.Z},
-                    cframe = {x = state.cframe.X, y = state.cframe.Y, z = state.cframe.Z}
-                })
-            end
-        end
-        
-        if state.cameraCFrame ~= lastPlayerState.cameraCFrame then
-             self:CaptureEvent("CameraChange", {
-                cframe = {x = state.cameraCFrame.X, y = state.cameraCFrame.Y, z = state.cameraCFrame.Z}
-            })
-        end
-        
-        lastPlayerState = state
-    end
-    
-    RunService.Heartbeat:Connect(trackState)
-    print("🏃 Propriedades rastreadas.")
-end
-
--- Rastreia sons.
-function UniversalCapture:SoundTracker()
-    local function trackSound(sound)
-        if not sound:IsA("Sound") then return end
-        sound.Played:Connect(function()
-            self:CaptureEvent("SoundPlayed", {
-                name = sound.Name,
-                id = sound.SoundId,
-                volume = sound.Volume
-            })
-        end)
-    end
-    
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        trackSound(obj)
-    end
-    
-    Workspace.DescendantAdded:Connect(trackSound)
-    print("🔊 Sons rastreados.")
-end
-
---[[
-    MÓDULO: ReplayEngine
-    
-    Responsável por reproduzir os eventos capturados.
-]]--
-function ReplayEngine:ReplayEvent(event)
-    print(string.format("🔄 Replicando [%s]...", event.type))
-    
-    -- A replicação de eventos remotos foi removida para resolver o problema de vulnerabilidade.
-    -- O script irá apenas ignorar eventos do tipo "RemoteFired" e "RemoteInvoked".
-    if event.type == "Movement" then
-        local character = localPlayer.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local pos = event.data.position
-            character.HumanoidRootPart.CFrame = CFrame.new(pos.x, pos.y, pos.z)
-        end
-    elseif event.type == "SoundPlayed" then
-        local sound = Instance.new("Sound")
-        sound.SoundId = event.data.id
-        sound.Volume = event.data.volume
-        sound.Parent = Workspace
-        sound:Play()
-        sound.Ended:Connect(function() sound:Destroy() end)
-    elseif event.type == "InstanceCreated" then
-        -- Não podemos replicar a criação de instâncias diretamente pois não sabemos o modelo.
-        -- Poderíamos usar o nome para tentar encontrar um no ReplicatedStorage e clonar.
-        print("⚠️ Replicando criação de instância. Isso pode não funcionar sem o modelo correto.")
-    end
-end
-
--- Inicia a reprodução de uma lista de eventos.
-function ReplayEngine:startReplay()
-    if not ReplicatorCore.IsReplaying then return end
-    
-    local events = ReplicatorCore.EventsToReplay
-    
-    -- Ordena os eventos por timestamp.
-    table.sort(events, function(a, b) return a.timestamp < b.timestamp end)
-    
-    local lastTimestamp = events[1].timestamp
-    
-    for _, event in ipairs(events) do
-        if not ReplicatorCore.IsReplaying then break end
-        
-        local delay = (event.timestamp - lastTimestamp) / ReplicatorCore.ReplaySpeed
-        if delay > 0.01 then
-            wait(delay)
-        end
-        
-        self:ReplayEvent(event)
-        lastTimestamp = event.timestamp
-    end
-    
-    ReplicatorCore:stopReplay()
-end
-
---[[
-    MÓDULO: ControlGUI
-    
-    Cria a interface de usuário completa e interativa.
-]]--
-function ControlGUI:create()
+-- Função para criar a interface do usuário (GUI)
+local function createGUI()
     local playerGui = localPlayer:WaitForChild("PlayerGui")
-    local oldGui = playerGui:FindFirstChild("ReplicatorGUI")
-    if oldGui then oldGui:Destroy() end
-    
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "ReplicatorGUI"
+    screenGui.Name = "CleanReplicatorGUI"
     screenGui.Parent = playerGui
-    
+
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 350, 0, 450)
+    mainFrame.Size = UDim2.new(0, 250, 0, 150)
     mainFrame.Position = UDim2.new(0, 10, 0, 10)
-    mainFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+    mainFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
     mainFrame.BorderSizePixel = 2
     mainFrame.BorderColor3 = Color3.new(0, 1, 0)
     mainFrame.Parent = screenGui
     
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Size = UDim2.new(1, 0, 0, 25)
     title.BackgroundTransparency = 1
-    title.Text = "🎬 Replicador Avançado"
+    title.Text = "🎬 Replicador Limpo"
     title.TextColor3 = Color3.new(0, 1, 0)
-    title.TextSize = 16
+    title.TextSize = 14
     title.Font = Enum.Font.SourceSansBold
     title.Parent = mainFrame
     
-    -- Labels de status dinâmicos.
     local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(1, -10, 0, 20)
-    statusLabel.Position = UDim2.new(0, 5, 0, 40)
+    statusLabel.Name = "StatusLabel"
+    statusLabel.Size = UDim2.new(1, 0, 0, 20)
+    statusLabel.Position = UDim2.new(0, 0, 0, 30)
     statusLabel.BackgroundTransparency = 1
-    statusLabel.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+    statusLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8)
     statusLabel.TextSize = 12
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Text = "Status: Parado"
     statusLabel.Parent = mainFrame
-    self.statusLabel = statusLabel
 
-    local totalLabel = Instance.new("TextLabel")
-    totalLabel.Size = UDim2.new(1, -10, 0, 20)
-    totalLabel.Position = UDim2.new(0, 5, 0, 65)
-    totalLabel.BackgroundTransparency = 1
-    totalLabel.TextColor3 = Color3.new(0.9, 0.9, 0.9)
-    totalLabel.TextSize = 12
-    totalLabel.TextXAlignment = Enum.TextXAlignment.Left
-    totalLabel.Parent = mainFrame
-    self.totalLabel = totalLabel
-    
-    local yPos = 100
-    
-    -- Botões de gravação/parada.
+    -- Botões de controle
     local recordButton = Instance.new("TextButton")
-    recordButton.Size = UDim2.new(1, -10, 0, 30)
-    recordButton.Position = UDim2.new(0, 5, 0, yPos)
+    recordButton.Name = "RecordButton"
+    recordButton.Size = UDim2.new(1, -10, 0, 25)
+    recordButton.Position = UDim2.new(0, 5, 0, 55)
     recordButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
     recordButton.Text = "▶️ Iniciar Gravação"
     recordButton.TextColor3 = Color3.new(1, 1, 1)
     recordButton.Parent = mainFrame
-    recordButton.MouseButton1Click:Connect(function()
-        ReplicatorCore:startRecording()
-    end)
-    yPos = yPos + 35
+    
+    local stopButton = Instance.new("TextButton")
+    stopButton.Name = "StopButton"
+    stopButton.Size = UDim2.new(1, -10, 0, 25)
+    stopButton.Position = UDim2.new(0, 5, 0, 85)
+    stopButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    stopButton.Text = "⏹️ Parar"
+    stopButton.TextColor3 = Color3.new(1, 1, 1)
+    stopButton.Parent = mainFrame
 
-    local stopRecordButton = Instance.new("TextButton")
-    stopRecordButton.Size = UDim2.new(1, -10, 0, 30)
-    stopRecordButton.Position = UDim2.new(0, 5, 0, yPos)
-    stopRecordButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    stopRecordButton.Text = "⏹️ Parar Gravação"
-    stopRecordButton.TextColor3 = Color3.new(1, 1, 1)
-    stopRecordButton.Parent = mainFrame
-    stopRecordButton.MouseButton1Click:Connect(function()
-        ReplicatorCore:stopRecording()
-    end)
-    yPos = yPos + 40
+    local replayButton = Instance.new("TextButton")
+    replayButton.Name = "ReplayButton"
+    replayButton.Size = UDim2.new(1, -10, 0, 25)
+    replayButton.Position = UDim2.new(0, 5, 0, 115)
+    replayButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    replayButton.Text = "🔄 Iniciar Replicação"
+    replayButton.TextColor3 = Color3.new(1, 1, 1)
+    replayButton.Parent = mainFrame
     
-    -- Botões de replicação.
-    local replayAllButton = Instance.new("TextButton")
-    replayAllButton.Size = UDim2.new(1, -10, 0, 30)
-    replayAllButton.Position = UDim2.new(0, 5, 0, yPos)
-    replayAllButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    replayAllButton.Text = "▶️ Replicar Tudo"
-    replayAllButton.TextColor3 = Color3.new(1, 1, 1)
-    replayAllButton.Parent = mainFrame
-    replayAllButton.MouseButton1Click:Connect(function()
-        ReplicatorCore:startReplay(ReplicatorCore.RecordedEvents, 1)
-        ReplayEngine:startReplay()
-    end)
-    yPos = yPos + 35
-    
-    local stopReplayButton = Instance.new("TextButton")
-    stopReplayButton.Size = UDim2.new(1, -10, 0, 30)
-    stopReplayButton.Position = UDim2.new(0, 5, 0, yPos)
-    stopReplayButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    stopReplayButton.Text = "⏸️ Parar Replicação"
-    stopReplayButton.TextColor3 = Color3.new(1, 1, 1)
-    stopReplayButton.Parent = mainFrame
-    stopReplayButton.MouseButton1Click:Connect(function()
-        ReplicatorCore:stopReplay()
-    end)
-    yPos = yPos + 40
-    
-    -- Botões de dados.
-    local clearButton = Instance.new("TextButton")
-    clearButton.Size = UDim2.new(1, -10, 0, 30)
-    clearButton.Position = UDim2.new(0, 5, 0, yPos)
-    clearButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    clearButton.Text = "🗑️ Limpar Dados"
-    clearButton.TextColor3 = Color3.new(1, 1, 1)
-    clearButton.Parent = mainFrame
-    clearButton.MouseButton1Click:Connect(function()
-        ReplicatorCore:clearData()
-    end)
-    yPos = yPos + 35
-    
-    self.gui = screenGui
+    return mainFrame, statusLabel
 end
 
--- Atualiza os labels da GUI.
-function ControlGUI:update()
-    if not self.statusLabel or not self.totalLabel then return end
+-- Função para capturar eventos e salvá-los
+local function captureEvent(eventType, data)
+    if not isRecording then return end
     
-    local status = "Capturando"
-    if ReplicatorCore.IsReplaying then
-        status = "Replicando"
-    elseif not ReplicatorCore.IsRecording then
-        status = "Parado"
-    end
-    
-    self.statusLabel.Text = "▶️ Status: " .. status
-    self.totalLabel.Text = "📊 Eventos Capturados: " .. #ReplicatorCore.RecordedEvents
+    local event = {
+        type = eventType,
+        data = data,
+        timestamp = os.time()
+    }
+    table.insert(recordedEvents, event)
+    print("Evento capturado: " .. eventType)
 end
 
---[[
-    FUNÇÃO DE INICIALIZAÇÃO PRINCIPAL
-]]--
-local function Initialize()
-    local oldGui = localPlayer.PlayerGui:FindFirstChild("ReplicatorGUI")
-    if oldGui then oldGui:Destroy() end
-
-    print("=" .. string.rep("=", 50) .. "=")
-    print("🎬 SISTEMA DE REPLICAÇÃO AVANÇADO ATIVO")
-    print("=" .. string.rep("=", 50) .. "=")
+-- Lógica de captura principal
+local function startCapture()
+    print("▶️ Captura iniciada.")
+    lastPosition = (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) and localPlayer.Character.HumanoidRootPart.Position or nil
+    lastCameraCFrame = Workspace.CurrentCamera.CFrame
     
-    UniversalCapture:InstanceTracker()
-    -- UniversalCapture:RemoteHooker() -- Esta linha foi removida
-    UniversalCapture:PropertyTracker()
-    UniversalCapture:SoundTracker()
-    
-    ControlGUI:create()
-    
+    -- Captura de movimento e câmera
     RunService.Heartbeat:Connect(function()
-        ControlGUI:update()
+        if not isRecording then return end
+        
+        local currentPosition = (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) and localPlayer.Character.HumanoidRootPart.Position or nil
+        if currentPosition and lastPosition and (currentPosition - lastPosition).Magnitude > 0.1 then
+            captureEvent("Movement", { Position = currentPosition })
+            lastPosition = currentPosition
+        end
+        
+        local currentCameraCFrame = Workspace.CurrentCamera.CFrame
+        if currentCameraCFrame ~= lastCameraCFrame then
+            captureEvent("Camera", { CFrame = currentCameraCFrame })
+            lastCameraCFrame = currentCameraCFrame
+        end
     end)
     
-    print("✅ Sistema de replicação completo iniciado!")
-    print("🎮 Use a interface para controlar a captura e replicação")
+    -- Captura de sons
+    for _, sound in ipairs(Workspace:GetDescendants()) do
+        if sound:IsA("Sound") then
+            sound.Played:Connect(function()
+                captureEvent("Sound", { SoundId = sound.SoundId, Volume = sound.Volume })
+            end)
+        end
+    end
+    Workspace.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("Sound") then
+            descendant.Played:Connect(function()
+                captureEvent("Sound", { SoundId = descendant.SoundId, Volume = descendant.Volume })
+            end)
+        end
+    end)
+    
+    -- Captura de criação de instâncias
+    Workspace.DescendantAdded:Connect(function(descendant)
+        captureEvent("InstanceCreated", { Class = descendant.ClassName, Path = descendant:GetFullName() })
+    end)
 end
 
---[[
-    LIMPEZA
-]]--
-game:BindToClose(function()
-    if ControlGUI.gui then
-        ControlGUI.gui:Destroy()
+-- Lógica de replicação principal
+local function startReplay()
+    print("🔄 Replicação iniciada.")
+    isReplaying = true
+    
+    -- Ordena os eventos por tempo
+    table.sort(recordedEvents, function(a, b) return a.timestamp < b.timestamp end)
+    
+    local lastTimestamp = nil
+    for _, event in ipairs(recordedEvents) do
+        if not isReplaying then break end
+        
+        if lastTimestamp then
+            wait(event.timestamp - lastTimestamp)
+        end
+        
+        if event.type == "Movement" then
+            local character = localPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = CFrame.new(event.data.Position)
+            end
+        elseif event.type == "Camera" then
+            Workspace.CurrentCamera.CFrame = event.data.CFrame
+        elseif event.type == "Sound" then
+            local sound = Instance.new("Sound")
+            sound.SoundId = event.data.SoundId
+            sound.Volume = event.data.Volume
+            sound.Parent = Workspace
+            sound:Play()
+            sound.Ended:Connect(function() sound:Destroy() end)
+        end
+        
+        lastTimestamp = event.timestamp
     end
-    print("👋 Sistema de replicação finalizado!")
-end)
+    
+    isReplaying = false
+    print("✅ Replicação concluída.")
+end
 
-Initialize()
+-- Função principal de inicialização
+local function main()
+    -- Limpa GUIs antigas
+    for _, child in ipairs(localPlayer.PlayerGui:GetChildren()) do
+        if child.Name == "CleanReplicatorGUI" then
+            child:Destroy()
+        end
+    end
+
+    local guiFrame, statusLabel = createGUI()
+    
+    guiFrame.RecordButton.MouseButton1Click:Connect(function()
+        isRecording = true
+        isReplaying = false
+        recordedEvents = {}
+        statusLabel.Text = "Status: Gravando..."
+    end)
+    
+    guiFrame.StopButton.MouseButton1Click:Connect(function()
+        isRecording = false
+        isReplaying = false
+        statusLabel.Text = "Status: Parado"
+        print("⏹️ Gravação parada. Eventos salvos: " .. #recordedEvents)
+    end)
+    
+    guiFrame.ReplayButton.MouseButton1Click:Connect(function()
+        if #recordedEvents > 0 then
+            isRecording = false
+            startReplay()
+            statusLabel.Text = "Status: Replicando..."
+        else
+            warn("⚠️ Nenhum evento gravado para replicar.")
+        end
+    end)
+    
+    startCapture()
+end
+
+-- Inicia o script
+main()
