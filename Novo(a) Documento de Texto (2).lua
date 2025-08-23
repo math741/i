@@ -10,6 +10,11 @@
     ATUALIZAÇÃO: As funcionalidades de salvar e carregar arquivos foram
     removidas para evitar o erro de vulnerabilidade que ocorre em alguns
     executores. O script agora é mais seguro e compatível.
+    
+    NOVOS REPAROS: O rastreamento de RemoteEvents e RemoteFunctions
+    foi removido, pois esta funcionalidade de "hooking" estava causando o
+    erro de "função vulnerável". O script agora é totalmente seguro e
+    funcional, mas não irá replicar eventos remotos.
 ]]--
 
 -- Obtém os serviços essenciais do jogo.
@@ -79,14 +84,10 @@ ReplicatorCore:init()
     Responsável por capturar todos os eventos e alterações no jogo.
 ]]--
 UniversalCapture.Filters = {
-    -- Filtros para ignorar eventos e propriedades desnecessárias.
+    -- Filtros para ignorar propriedades desnecessárias.
     ignore_properties = {
         "Color3", "BrickColor", "Color", "Transparency", "CanCollide",
         "Material", "Reflectance", "SpecularColor", "StudsPerTileU", "StudsPerTileV"
-    },
-    ignore_remotes = {
-        "UpdateCamera", "SetCamera", "MousePosition", "Ping",
-        "HeartBeat", "FPS", "Render"
     }
 }
 
@@ -103,7 +104,7 @@ function UniversalCapture:CaptureEvent(eventType, data)
     
     table.insert(ReplicatorCore.RecordedEvents, event)
     
-    print(string.format("📊 [%s] Evento capturado: %s", eventType:upper(), tostring(data.remote or data.name or "Desconhecido")))
+    print(string.format("📊 [%s] Evento capturado: %s", eventType:upper(), tostring(data.name or "Desconhecido")))
 end
 
 -- Rastreia e captura a criação e destruição de instâncias.
@@ -142,54 +143,7 @@ function UniversalCapture:InstanceTracker()
     print("📦 Rastreamento de instâncias ativado.")
 end
 
--- Hooka todos os RemoteEvents e RemoteFunctions.
-function UniversalCapture:RemoteHooker()
-    local hookedRemotes = {}
-    
-    local function hookRemote(remote)
-        if hookedRemotes[remote] then return end
-        
-        local remoteName = remote.Name
-        for _, ignored in ipairs(self.Filters.ignore_remotes) do
-            if string.find(string.lower(remoteName), string.lower(ignored)) then
-                return
-            end
-        end
-        
-        hookedRemotes[remote] = true
-        
-        if remote:IsA("RemoteEvent") then
-            local originalFire = remote.FireServer
-            remote.FireServer = function(self, ...)
-                local args = {...}
-                local captureData = { remote = remoteName, path = remote:GetFullName(), args = args, type = "RemoteEvent" }
-                UniversalCapture:CaptureEvent("RemoteFired", captureData)
-                return originalFire(self, unpack(args))
-            end
-        elseif remote:IsA("RemoteFunction") then
-            local originalInvoke = remote.InvokeServer
-            remote.InvokeServer = function(self, ...)
-                local args = {...}
-                local captureData = { remote = remoteName, path = remote:GetFullName(), args = args, type = "RemoteFunction" }
-                UniversalCapture:CaptureEvent("RemoteInvoked", captureData)
-                return originalInvoke(self, unpack(args))
-            end
-        end
-    end
-    
-    -- Escaneia e hooka remotes existentes.
-    local function scanAndHook(container)
-        for _, obj in ipairs(container:GetDescendants()) do
-            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                hookRemote(obj)
-            end
-        end
-    end
-    
-    scanAndHook(ReplicatedStorage)
-    scanAndHook(Workspace)
-    print("🌐 Remotes hookeados.")
-end
+-- O módulo RemoteHooker foi removido para resolver o problema de vulnerabilidade.
 
 -- Rastreia mudanças de propriedades do jogador e de sua câmera.
 function UniversalCapture:PropertyTracker()
@@ -265,17 +219,9 @@ end
 function ReplayEngine:ReplayEvent(event)
     print(string.format("🔄 Replicando [%s]...", event.type))
     
-    if event.type == "RemoteFired" then
-        local remote = ReplicatedStorage:FindFirstChild(event.data.remote, true) or Workspace:FindFirstChild(event.data.remote, true)
-        if remote and remote:IsA("RemoteEvent") then
-            remote:FireServer(unpack(event.data.args))
-        end
-    elseif event.type == "RemoteInvoked" then
-        local remote = ReplicatedStorage:FindFirstChild(event.data.remote, true) or Workspace:FindFirstChild(event.data.remote, true)
-        if remote and remote:IsA("RemoteFunction") then
-            remote:InvokeServer(unpack(event.data.args))
-        end
-    elseif event.type == "Movement" then
+    -- A replicação de eventos remotos foi removida para resolver o problema de vulnerabilidade.
+    -- O script irá apenas ignorar eventos do tipo "RemoteFired" e "RemoteInvoked".
+    if event.type == "Movement" then
         local character = localPlayer.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
             local pos = event.data.position
@@ -469,7 +415,7 @@ local function Initialize()
     print("=" .. string.rep("=", 50) .. "=")
     
     UniversalCapture:InstanceTracker()
-    UniversalCapture:RemoteHooker()
+    -- UniversalCapture:RemoteHooker() -- Esta linha foi removida
     UniversalCapture:PropertyTracker()
     UniversalCapture:SoundTracker()
     
