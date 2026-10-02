@@ -17,41 +17,50 @@ Precisa só de `python3` e de um compilador C. Funciona em x86, ARM64 e ARMv7 (P
 ```sh
 python3 mlg/mlg.py                                    # busca completa
 python3 mlg/mlg.py --quick                            # busca curta (Pi)
-python3 mlg/mlg.py --link-mbps 20 --link-ms 5 --watts 1.5   # + tetos de rede e energia
+python3 mlg/mlg.py --link-mbps 20 --link-ms 5 --watts 1.5   # + tetos de rede e Landauer
 ```
 
-No Pi Zero 2 W (512 MB) use `--n 256 --bw-mb 48` se a memória estiver apertada.
+No Pi Zero 2 W (512 MB) use `--n 256`; o teste de banda já se limita a 1/3 da memória livre.
 
 ## O que cada parte faz
 
 | Peça | Arquivo | O que é de verdade |
 |---|---|---|
-| DNA do hardware | `probe.c`, `peak.c` | Mede FLOP/s (1 e N threads), banda de memória (1 e N threads), temperatura. Descobre as flags de compilação que este compilador aceita aqui. |
-| Motor de síntese | `mlg.py` (`Synth`, `gen_source`) | Cada candidato é um genoma (tipo, bloco de registradores MR×NR, tiling KC, threads, contrato numérico). Vira código C, é compilado em paralelo e carregado. Evolui por mutação dos melhores. |
-| Reescritas não provadas | `REWRITES` | O sintetizador às vezes propõe "otimizações" agressivas que parecem válidas. Ele não sabe se estão certas. |
-| Gate de verificação | `mlg_ref`, `mlg_check` | Teorema (Higham §3.1): qualquer ordem de soma em float de K produtos tem erro ≤ γ_K·(\|A\|·\|B\|). Toda reordenação, tiling, vetorização ou FMA correta cabe nesse limite; quem passa dele está **provadamente** errado. Testa formas escolhidas para quebrar bordas (1×1×1, primos, não múltiplos de bloco). |
-| Autotuner | `bench` | Mede no silício, no estado físico atual. |
-| Rollback | `mlg_state.json` | O campeão de cada máquina é salvo e tem que se provar de novo a cada execução. Um desafiante só é promovido se passar no gate **e** for >2% mais rápido. |
-| Relatório do limite | `report_limits` | Quanto falta até o teto medido, e os tetos físicos de decodificação de um LLM, de rede e de energia. |
+| DNA do hardware | `probe.c`, `peak.c` | Teto de FLOP/s achado por **busca** (acumuladores × largura de vetor), banda DRAM com conjunto de trabalho ≥ 4× o último cache, banda dentro do cache (só referência), frequência efetiva sob carga, temperatura. |
+| Motor de síntese | `mlg.py` (`Synth`, `gen_source`) | Genoma = tipo, bloco de registradores MR×NR, tiling KC, threads, contrato numérico (fast-math ou não) e **ISA** (ex.: vetores de 512 bits). Vira C, compila em paralelo, evolui por mutação dos melhores. |
+| Reescritas não provadas | `REWRITES` | "Otimizações" que parecem válidas. O motor não sabe se estão certas; só o gate decide. |
+| Contrato de prova | `mlg.py` (`contract`) | Cada candidato registra: dtype, arredondamento e FTZ/DAZ **medidos após carregar o binário**, FMA (contado no disassembly), reassociação, argumento de overflow/underflow, compilador, flags, ISA, hashes do fonte e do binário. |
+| Gate | `mlg_ref`, `mlg_check` | Limite γ_K·(\|A\|·\|B\|) (Higham §3.1), válido para qualquer ordem de soma sob o contrato. Violar = **contraexemplo** (prova de bug). Passar = evidência **nível 2**, não prova. |
+| Benchmark | `bench`, `stats` | Amostras cruas, 1 aquecimento descartado, ≥ 5 amostras, ranking por **mediana**, CV registrado. |
+| Promoção / rollback | `duel`, `mlg_state.json` | Duelo intercalado campeão × desafiante; promove só com ganho > max(2%, 2·CV) e nível ≥ 2. Campeão que reprova é destituído. |
+| Raiz de confiança | `probe.c` | O gate é pequeno, fica fora do espaço de busca e tem o sha256 gravado em todo relatório. |
+| Relatório bruto | `reports/*.json` | Tudo: DNA com todas as variantes do probe, cada candidato com contrato, razões do gate por forma, todas as amostras de tempo, duelo, tetos. |
 
-## Os muros que nenhum diagrama atravessa
+## Níveis de evidência
 
-Diagrama não tem teto: sempre dá para desenhar mais uma camada "meta". O limite real é onde a física
-e a matemática dizem não. Esses não mudam com arquitetura de software:
+| Nível | Nome | Aqui |
+|---|---|---|
+| 4 | FORMAL | ainda não existe |
+| 3 | CERTIFIED | ainda não existe |
+| 2 | DIFFERENTIAL+BOUND | gate atual: referência em double + tolerância provada, formas que forçam bordas |
+| 1 | PROPERTY | — |
+| 0 | EXPERIMENTAL | nunca substitui um campeão |
 
-1. **Roofline.** Um token de um LLM com batch 1 lê todos os pesos. `tokens/s ≤ banda / bytes_dos_pesos`.
-   Nenhum compilador passa disso; só se mexe nos bytes (quantização, esparsidade) ou na banda (silício).
-2. **Rede.** Pesos em outro aparelho via Wi-Fi: um modelo de 101M em INT8 leva dezenas de segundos por
-   token. "Uma memória só" atravessando a rede funciona para dados frios, nunca para pesos quentes.
-   O que viaja são ativações, e cada fronteira entre aparelhos custa pelo menos um RTT por token.
-3. **Rice / parada.** Nenhum gate decide correção de código arbitrário. Verificação forte só existe em
-   fragmentos com teorema (como o limite de erro usado aqui). Fora deles, o gate vira teste, não prova.
-4. **Obstáculo de Löb.** Um sistema não prova a solidez de um sucessor tão forte quanto ele mesmo.
-   Autoalteração ilimitada exige uma âncora de verificação que o próprio sistema não reescreve.
-5. **No Free Lunch.** Busca sobre "todas as arquiteturas" não é melhor que outra em média: precisa de
-   priors. O espaço de busca é uma decisão de projeto, não um detalhe.
-6. **Landauer.** kT·ln2 ≈ 2,9·10⁻²¹ J por bit apagado a 300 K. Hardware atual está ~10¹⁰ acima disso.
-   Esse é o teto absoluto; todo o caminho até ele é engenharia.
+## Metodologia do benchmark
+
+- FLOP = 2n³ (algoritmo clássico). Tempo = relógio de parede por chamada completa, **incluindo** criar e juntar as threads.
+- Cache quente: A, B e C (3n² floats) são reutilizados.
+- Todo teto é **empírico**: a melhor medição de um probe. O teto verdadeiro é ≥ ele, então "% do teto" é um limite **superior** da eficiência.
+- `P_reachable = min(P_compute, BW_DRAM × I)` diz qual parede está sendo atingida.
+- Landauer aparece só como referência (kT·ln2 por bit apagado irreversivelmente), **não** como limite de J/FLOP.
+
+## Errata (versão anterior desta semente)
+
+1. **O teto de 299 GFLOP/s estava errado.** O probe tinha 64 acumuladores = 4 registradores zmm, menos que latência × portas de FMA, e media latência, não vazão. Além disso, a busca não tinha vetores de 512 bits. Teto corrigido nesta máquina: ~650 GFLOP/s (≈ 58 FLOP/ciclo/núcleo a 2,8 GHz, perto dos 64 teóricos do AVX-512 com 2 FMAs).
+2. **A banda de 94 GB/s era do cache L3** (260 MiB nesta máquina), não da DRAM. DRAM real: ~45 GB/s. Os tetos de tokens/s caíram pela metade.
+3. **208 GFLOP/s era o melhor caso**, não a mediana. Nesta VM a mediana do campeão fica entre 130 e 165 GFLOP/s, com dispersão grande. Logo, a eficiência real é ≤ 20–25% do teto, não 70%.
+4. "Passar no gate" foi descrito como prova. É evidência nível 2; só a **reprovação** é prova (contraexemplo).
+5. Landauer foi apresentado como teto de J/FLOP. Não é.
 
 ## Próximas operações no mesmo laço
 

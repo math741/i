@@ -66,11 +66,17 @@ void mlg_poison(float *x, long n) {
 
 /* ---------- gate de verificação ----------
  * Referência em double: R = A·B e S = |A|·|B|.
- * Teorema (Higham, Accuracy and Stability of Numerical Algorithms, §3.1):
- * qualquer ordem de soma em ponto flutuante de K produtos satisfaz
+ * Teorema (Higham, Accuracy and Stability of Numerical Algorithms, 2ª ed., §3.1; ver também
+ * Jeannerod & Rump 2013): sob arredondamento ao mais próximo e sem underflow/overflow,
+ * QUALQUER ordem de avaliação do produto interno de K termos satisfaz
  *     |Ĉ_ij − C_ij| ≤ γ_K · (|A|·|B|)_ij,  γ_K = K·u / (1 − K·u),  u = 2^-24.
- * Ou seja: QUALQUER reordenação/tiling/vetorização/FMA correta cabe nesse limite.
- * Código que viola o limite não é "um pouco impreciso": está provadamente errado. */
+ * As hipóteses são garantidas pelo domínio de entrada (mlg_fill gera múltiplos de 2^-23 em
+ * [-1,1]: todo valor intermediário, com ou sem FMA, é múltiplo de 2^-69, logo nunca subnormal;
+ * |soma| ≤ K ≪ FLT_MAX) e o modo de arredondamento é medido em mlg_fp_env.
+ *
+ * Nível de evidência: violar o limite é CONTRAEXEMPLO (prova de bug, dado o contrato).
+ * Passar é evidência diferencial nível 2, não prova: provar que o binário calcula uma
+ * soma de produtos arredondados em alguma ordem é exatamente o que Rice impede em geral. */
 void mlg_ref(int M, int N, int K, const float *A, const float *B, double *R, double *S) {
     for (int i = 0; i < M; i++)
         for (int j = 0; j < N; j++) {
@@ -98,4 +104,51 @@ double mlg_check(int M, int N, int K, const float *C, const double *R, const dou
         if (ratio > worst) worst = ratio;
     }
     return worst;
+}
+
+/* ---------- ambiente de ponto flutuante, medido (não presumido) ---------- */
+#include <fenv.h>
+
+/* out[0]=modo de arredondamento (0 nearest,1 down,2 up,3 zero,-1 ?), out[1]=FTZ, out[2]=DAZ */
+void mlg_fp_env(int *out) {
+    int r = fegetround();
+    out[0] = r == FE_TONEAREST ? 0 : r == FE_DOWNWARD ? 1 : r == FE_UPWARD ? 2 : r == FE_TOWARDZERO ? 3 : -1;
+    volatile float tiny = 1e-38f, half = 0.5f, denorm = 1e-40f, two = 2.0f;
+    out[1] = (tiny * half) == 0.0f;  /* resultado subnormal virou zero? */
+    out[2] = (denorm * two) == 0.0f; /* entrada subnormal tratada como zero? */
+}
+
+/* ---------- frequência efetiva sob carga: cadeia de somas dependentes (1 ciclo cada) ---------- */
+typedef struct { long iters; double hz; } fq_job;
+
+static void *fq_worker(void *p) {
+    fq_job *j = (fq_job *)p;
+    unsigned long x = 1;
+    double t0 = now();
+    for (long i = 0; i < j->iters; i++) {
+#define STEP x += (unsigned long)i; __asm__ volatile("" : "+r"(x));
+        STEP STEP STEP STEP STEP STEP STEP STEP
+    }
+    double dt = now() - t0;
+    volatile unsigned long sink = x;
+    (void)sink;
+    j->hz = 8.0 * j->iters / dt;
+    return NULL;
+}
+
+/* Estimativa (limite inferior) da frequência média por thread com `threads` threads ativas. */
+double mlg_freq(long iters, int threads) {
+    if (threads < 1) threads = 1;
+    if (threads > 64) threads = 64;
+    pthread_t th[64];
+    fq_job jb[64];
+    for (int t = 0; t < threads; t++) {
+        jb[t] = (fq_job){iters, 0};
+        if (t) pthread_create(&th[t], NULL, fq_worker, &jb[t]);
+    }
+    fq_worker(&jb[0]);
+    for (int t = 1; t < threads; t++) pthread_join(th[t], NULL);
+    double s = 0;
+    for (int t = 0; t < threads; t++) s += jb[t].hz;
+    return s / threads;
 }

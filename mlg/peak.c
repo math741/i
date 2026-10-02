@@ -1,9 +1,14 @@
-/* MLG peak: teto de FLOP/s medido. Compilado com -ffast-math para permitir SIMD
- * em todo alvo (no ARMv7 o NEON só é usado para float com essa permissão). */
+/* MLG peak: teto empírico de FLOP/s. Compilado com -ffast-math para permitir SIMD
+ * em todo alvo (no ARMv7 o NEON só é usado para float com essa permissão).
+ * ACC é parâmetro de busca: com poucos acumuladores o laço fica limitado pela
+ * LATÊNCIA do FMA (ex.: 64 floats = 4 registradores zmm < latência x portas),
+ * e o "pico" medido sai pela metade. O teto é o máximo sobre as variantes. */
 #include <pthread.h>
 #include <time.h>
 
+#ifndef ACC
 #define ACC 64
+#endif
 
 static double now(void) {
     struct timespec t;
