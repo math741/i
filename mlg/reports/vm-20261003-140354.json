@@ -1,0 +1,1075 @@
+{
+ "argv": [
+  "attention",
+  "--seq",
+  "4096",
+  "--ram-mb",
+  "16",
+  "--quick",
+  "--seed",
+  "4"
+ ],
+ "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+ "dna": {
+  "bw_1t": 12625717703.948769,
+  "bw_all": 47123660915.18311,
+  "bw_convention": "STREAM triad, 24 B/iter (sem write-allocate: tr\u00e1fego real ~32 B/iter)",
+  "bw_dram_ws_over_llc": 4.0,
+  "bw_llc_all": 104978852949.81097,
+  "bw_working_set": 1090519040,
+  "freq_1t_hz": 2923194669.38954,
+  "freq_all_hz": 2944502335.801177,
+  "llc_bytes": 272629760,
+  "llc_level": 3,
+  "peak_1t": 175173650461.2716,
+  "peak_all": 681668351011.1772,
+  "peak_from": {
+   "acc": 256,
+   "isa": "vw512"
+  },
+  "peak_variants": [
+   {
+    "acc": 32,
+    "fma_instr": 25,
+    "isa": "default",
+    "samples_1t": [
+     26227255551.581863,
+     25936584425.77825,
+     23514259804.07554
+    ],
+    "samples_all": [
+     99784095999.20595,
+     105976851627.43968,
+     98643859910.02357
+    ]
+   },
+   {
+    "acc": 32,
+    "fma_instr": 13,
+    "isa": "vw512",
+    "samples_1t": [
+     24980113792.461113,
+     25055958983.843487,
+     24782077971.48887
+    ],
+    "samples_all": [
+     99121302719.16164,
+     98191348134.73085,
+     98399779147.0228
+    ]
+   },
+   {
+    "acc": 64,
+    "fma_instr": 49,
+    "isa": "default",
+    "samples_1t": [
+     87459793222.31456,
+     87387913643.23161,
+     87566725518.14375
+    ],
+    "samples_all": [
+     302035033103.90936,
+     292647143670.98334,
+     292477944981.8758
+    ]
+   },
+   {
+    "acc": 64,
+    "fma_instr": 25,
+    "isa": "vw512",
+    "samples_1t": [
+     93610837511.30452,
+     93614905893.97603,
+     94050105611.38089
+    ],
+    "samples_all": [
+     362060757782.24347,
+     354487647573.8361,
+     366927397189.8536
+    ]
+   },
+   {
+    "acc": 128,
+    "fma_instr": 97,
+    "isa": "default",
+    "samples_1t": [
+     92614448343.15186,
+     92243541838.1871,
+     92509585472.92107
+    ],
+    "samples_all": [
+     366220437314.908,
+     357860769607.35724,
+     366646064117.0365
+    ]
+   },
+   {
+    "acc": 128,
+    "fma_instr": 49,
+    "isa": "vw512",
+    "samples_1t": [
+     161930482593.1344,
+     161109683573.7344,
+     162488829468.2293
+    ],
+    "samples_all": [
+     651314652106.7882,
+     595100632635.0847,
+     652637512088.2163
+    ]
+   },
+   {
+    "acc": 256,
+    "fma_instr": 7,
+    "isa": "default",
+    "samples_1t": [
+     75849384860.04512,
+     78836468903.14253,
+     77697609414.35564
+    ],
+    "samples_all": [
+     285236663151.6336,
+     291662246784.27484,
+     284540492312.964
+    ]
+   },
+   {
+    "acc": 256,
+    "fma_instr": 97,
+    "isa": "vw512",
+    "samples_1t": [
+     171291173769.47983,
+     172641354672.406,
+     175173650461.2716
+    ],
+    "samples_all": [
+     681668351011.1772,
+     667520609861.8024,
+     676890318050.9235
+    ]
+   }
+  ],
+  "temp_c_after": null,
+  "temp_c_before": null
+ },
+ "evidence_levels": {
+  "0": "E0 experimental",
+  "1": "E1 empirical",
+  "2": "E2 differential + bound",
+  "3": "E3 bounded numerical guarantee",
+  "4": "E4 certified transformation",
+  "5": "E5 proof checked"
+ },
+ "fingerprint": "x86_64 | Intel(R) Xeon(R) Processor @ 2.10GHz | 4 cpus | 16094 MB",
+ "flags": [
+  "-O3",
+  "-march=native"
+ ],
+ "isa_variants": {
+  "default": [],
+  "vw512": [
+   "-mprefer-vector-width=512"
+  ]
+ },
+ "methodology": {
+  "cache": "hot (inputs reused)",
+  "ceilings": "empirical: compute = max over probe variants (ACC x ISA); memory = STREAM triad 24 B/iter, working set >= 4x LLC; true ceilings are >= these",
+  "distribution": "T = max(T/2, T/2/remote_speed) + split_bytes/link + RTT",
+  "promotion": "interleaved duel, gain > max(2%, 2*cv), level >= E2",
+  "ranking": "median",
+  "timer": "time.perf_counter, wall clock, per full call incl. thread create/join",
+  "warmup": "1 discarded call per candidate"
+ },
+ "operations": [
+  {
+   "candidates": [
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native"
+      ],
+      "fma_instr": 24,
+      "so": "/home/user/i/mlg/.build/d2ee062c57c0eede.so",
+      "so_sha256": "a8a32f8922fafddc4384f9d3dc6e497c67804af77fc71f883c7211764af2324a",
+      "src_sha256": "542f94bcb915657dc2c83971066ee49a4aee678fe15c26cc5ba2ab9e63e0e07d"
+     },
+     "evidence": {
+      "algorithm": "E4: \u00e9 a pr\u00f3pria defini\u00e7\u00e3o (nada foi transformado)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "generation": 0,
+     "genome": {
+      "FM": 0,
+      "ISA": "default",
+      "T": 1,
+      "kind": "full"
+     },
+     "level": 0,
+     "ok": false,
+     "ram_extra": 67108864.0,
+     "why": "invi\u00e1vel: precisa de 67.11 MB extras, or\u00e7amento 16.78 MB"
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native"
+      ],
+      "fma_instr": 8,
+      "so": "/home/user/i/mlg/.build/fb30da7563e949fa.so",
+      "so_sha256": "66db4e6ccd0e91111179a3b26de1bc34c9df0eeedb1b55557d8532545077364d",
+      "src_sha256": "f6483e9cd381315d166f49cad70f0051d5aea773098f44feb11e8c5c20c47669"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/default",
+      "reassociation": "compiler-default",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E4: mesma defini\u00e7\u00e3o, linha a linha (exato em \u211d)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "gate_ratios": {
+      "100x64": 0.0003650640090810855,
+      "1x64": 0.0,
+      "257x64": 0.0001695592188641451,
+      "33x64": 0.0009968039926488794,
+      "4099x64": 1.681473880250713e-05,
+      "7x64": 0.0021696411314154015,
+      "logits-grandes": 0.004402380325799366
+     },
+     "generation": 0,
+     "genome": {
+      "FM": 0,
+      "ISA": "default",
+      "T": 4,
+      "kind": "row"
+     },
+     "level": 2,
+     "ok": true,
+     "ram_extra": 65536.0,
+     "samples_s": [
+      0.16606440900000052,
+      0.1442275439999321,
+      0.1836980239999093,
+      0.1486233960000618,
+      0.23850795099997413
+     ],
+     "stats": {
+      "best_s": 0.1442275439999321,
+      "cv": 0.19366786525912794,
+      "median_s": 0.16606440900000052,
+      "n_samples": 5,
+      "p95_s": 0.23850795099997413,
+      "worst_s": 0.23850795099997413
+     }
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native"
+      ],
+      "fma_instr": 8,
+      "so": "/home/user/i/mlg/.build/07bdeae1765e82ab.so",
+      "so_sha256": "886baecbb9fa53ab7eff3928f3c1eab36b774626374c84e991e7266d1ed60ac7",
+      "src_sha256": "c47c7ef65b75a27dbf577d606987cd90f49ee6cdebc9bf6cd09f0de56e62597e"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/default",
+      "reassociation": "compiler-default",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E4: identidade do softmax online (teorema em \u211d, qualquer blocagem)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "gate_ratios": {
+      "100x64": 0.0003650640090810855,
+      "1x64": 0.0,
+      "257x64": 0.00016846086341833604,
+      "33x64": 0.0009968039926488794,
+      "4099x64": 1.1968789844175085e-05,
+      "7x64": 0.0021696411314154015,
+      "logits-grandes": 0.004402380325799366
+     },
+     "generation": 0,
+     "genome": {
+      "BC": 64,
+      "BR": 4,
+      "FM": 0,
+      "ISA": "default",
+      "T": 4,
+      "kind": "online"
+     },
+     "level": 2,
+     "ok": true,
+     "ram_extra": 8320.0,
+     "samples_s": [
+      0.1317680150000342,
+      0.13464432599994325,
+      0.13631912700009252,
+      0.13851709800007939,
+      0.14217046100009156
+     ],
+     "stats": {
+      "best_s": 0.1317680150000342,
+      "cv": 0.025746593072860337,
+      "median_s": 0.13631912700009252,
+      "n_samples": 5,
+      "p95_s": 0.14217046100009156,
+      "worst_s": 0.14217046100009156
+     }
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma_instr": 14,
+      "so": "/home/user/i/mlg/.build/7e1443ce1f336042.so",
+      "so_sha256": "0e753b9ed3e16300ca3fea6640bc6ad757203fffbfc32108d4d451223c468fda",
+      "src_sha256": "1ce837879dda80c4f4c99392b7cffe5f0958eb70f6f7ff692bdfd6df20d7c751"
+     },
+     "evidence": {
+      "algorithm": "E4: \u00e9 a pr\u00f3pria defini\u00e7\u00e3o (nada foi transformado)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "generation": 0,
+     "genome": {
+      "FM": 1,
+      "ISA": "vw512",
+      "T": 4,
+      "kind": "full"
+     },
+     "level": 0,
+     "ok": false,
+     "ram_extra": 67108864.0,
+     "why": "invi\u00e1vel: precisa de 67.11 MB extras, or\u00e7amento 16.78 MB"
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-ffast-math"
+      ],
+      "fma_instr": 28,
+      "so": "/home/user/i/mlg/.build/63cf2d8409428c4a.so",
+      "so_sha256": "c3939865d1d9ca3357e6f723508f109c1f4ddfa67f03e01161fd7b4f086afb4a",
+      "src_sha256": "3b9739edd2fe1db71495be2581a9efe78a44a3f0983dc06f9ac30299f6683a2d"
+     },
+     "evidence": {
+      "algorithm": "E0: reescrita sem prova",
+      "numeric": "an\u00e1lise de 1\u00aa ordem"
+     },
+     "generation": 0,
+     "genome": {
+      "FM": 1,
+      "ISA": "default",
+      "T": 1,
+      "kind": "full",
+      "rewrite": "no_max_subtract"
+     },
+     "level": 0,
+     "ok": false,
+     "ram_extra": 67108864.0,
+     "why": "invi\u00e1vel: precisa de 67.11 MB extras, or\u00e7amento 16.78 MB"
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma_instr": 14,
+      "so": "/home/user/i/mlg/.build/24602d20d56bdb36.so",
+      "so_sha256": "0d873607662dfa3121de50cfe9eaa34bc8c6545415ec0ca4e6275ca0358772c5",
+      "src_sha256": "5679c125545c6c157050c070e9bea959dfc252bde5cff15a0ff5067ec086d7d0"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/vw512",
+      "reassociation": "allowed (-ffast-math)",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E0: reescrita sem prova",
+      "numeric": "an\u00e1lise de 1\u00aa ordem"
+     },
+     "gate_ratios": {
+      "100x64": 0.0003492832935764893,
+      "1x64": 0.00344277198143552,
+      "257x64": 0.0001708753518873822,
+      "33x64": 0.0009138072947188816,
+      "4099x64": 1.3369685881964887e-05,
+      "7x64": 0.0027398784681800744,
+      "logits-grandes": Infinity
+     },
+     "generation": 0,
+     "genome": {
+      "FM": 1,
+      "ISA": "vw512",
+      "T": 4,
+      "kind": "row",
+      "rewrite": "no_max_subtract"
+     },
+     "level": 0,
+     "ok": false,
+     "ram_extra": 65536.0,
+     "why": "contraexemplo: erro infx a toler\u00e2ncia em logits-grandes"
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512"
+      ],
+      "fma_instr": 4,
+      "so": "/home/user/i/mlg/.build/091249ff54a90f58.so",
+      "so_sha256": "32403173136219cfd307d2b05e0eb224862ee5c9f52a887c2e221eb45719b6f1",
+      "src_sha256": "d176fa38d5fe4825ee9b4a9b36d583a434e7fcadb051dbb64497707064996e1a"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/vw512",
+      "reassociation": "compiler-default",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E0: reescrita sem prova",
+      "numeric": "an\u00e1lise de 1\u00aa ordem"
+     },
+     "gate_ratios": {
+      "1x64": 0.0,
+      "33x64": 685.1366013397352,
+      "7x64": 0.0021696411314154015
+     },
+     "generation": 0,
+     "genome": {
+      "BC": 16,
+      "BR": 2,
+      "FM": 0,
+      "ISA": "vw512",
+      "T": 1,
+      "kind": "online",
+      "rewrite": "skip_rescale"
+     },
+     "level": 0,
+     "ok": false,
+     "ram_extra": 656.0,
+     "why": "contraexemplo: erro 685x a toler\u00e2ncia em 33x64"
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma_instr": 14,
+      "so": "/home/user/i/mlg/.build/20f1315e11cab101.so",
+      "so_sha256": "41fc6586b80421bb5e01ea45c106fc0ffe9911dbc70e8a381b19a7e4dfd5f46e",
+      "src_sha256": "ce34043b42b13cb0d5cdce168ffaad22b55b9e42de3269508ec8cd3e1a3ef3c1"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/vw512",
+      "reassociation": "allowed (-ffast-math)",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E4: identidade do softmax online (teorema em \u211d, qualquer blocagem)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "gate_ratios": {
+      "100x64": 0.0004230057236371349,
+      "1x64": 0.0,
+      "257x64": 0.00014780073555656066,
+      "33x64": 0.0009198785286513463,
+      "4099x64": 1.2972426517273315e-05,
+      "7x64": 0.00202734161242799,
+      "logits-grandes": 0.0019899337641171365
+     },
+     "generation": 0,
+     "genome": {
+      "BC": 16,
+      "BR": 4,
+      "FM": 1,
+      "ISA": "vw512",
+      "T": 1,
+      "kind": "online"
+     },
+     "level": 2,
+     "ok": true,
+     "ram_extra": 1312.0,
+     "samples_s": [
+      0.19721616100002848,
+      0.19586463699999968,
+      0.18298039000001154,
+      0.18021006099991155,
+      0.18431072400005633
+     ],
+     "stats": {
+      "best_s": 0.18021006099991155,
+      "cv": 0.03730299118060039,
+      "median_s": 0.18431072400005633,
+      "n_samples": 5,
+      "p95_s": 0.19721616100002848,
+      "worst_s": 0.19721616100002848
+     }
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-ffast-math"
+      ],
+      "fma_instr": 28,
+      "so": "/home/user/i/mlg/.build/42ff72509ce15056.so",
+      "so_sha256": "cdcc245f136458a5cb3fcc5dbd7cdc95e66a47f46bef47cb75ed47007cfd8e5d",
+      "src_sha256": "809d70fbd17b9954b0a4db880d1951f81db8789d27a2aac9dec314baa772f857"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-ffast-math"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/default",
+      "reassociation": "allowed (-ffast-math)",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E4: identidade do softmax online (teorema em \u211d, qualquer blocagem)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "gate_ratios": {
+      "100x64": 0.0004809474381931843,
+      "1x64": 0.0,
+      "257x64": 0.00016846086341833604,
+      "33x64": 0.0008635110525862527,
+      "4099x64": 1.1567335174935794e-05,
+      "7x64": 0.002490046144948497,
+      "logits-grandes": 0.0017027155233926366
+     },
+     "generation": 1,
+     "genome": {
+      "BC": 64,
+      "BR": 2,
+      "FM": 1,
+      "ISA": "default",
+      "T": 4,
+      "kind": "online"
+     },
+     "level": 2,
+     "ok": true,
+     "ram_extra": 4160.0,
+     "samples_s": [
+      0.05125649199999316,
+      0.05106972600003701,
+      0.048829997999973784,
+      0.05335553700001583,
+      0.04901710500007539
+     ],
+     "stats": {
+      "best_s": 0.048829997999973784,
+      "cv": 0.032796212114041975,
+      "median_s": 0.05106972600003701,
+      "n_samples": 5,
+      "p95_s": 0.05335553700001583,
+      "worst_s": 0.05335553700001583
+     }
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512"
+      ],
+      "fma_instr": 4,
+      "so": "/home/user/i/mlg/.build/229c48a252551c19.so",
+      "so_sha256": "fcd7fc51cd58930788ba1828323a16b113ccef0be2eb6b3d5f4313fbe1de6ddf",
+      "src_sha256": "2b7fb95c0f3b6c28e31606081b014166c89753c1c835a0cb932d1e5eb3ecac51"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/vw512",
+      "reassociation": "compiler-default",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E4: identidade do softmax online (teorema em \u211d, qualquer blocagem)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "gate_ratios": {
+      "100x64": 0.00039316810402568477,
+      "1x64": 0.0,
+      "257x64": 0.00015733914105596044,
+      "33x64": 0.0009968039926488794,
+      "4099x64": 1.2570971848034023e-05,
+      "7x64": 0.0021696411314154015,
+      "logits-grandes": 0.004402380325799366
+     },
+     "generation": 1,
+     "genome": {
+      "BC": 16,
+      "BR": 4,
+      "FM": 0,
+      "ISA": "vw512",
+      "T": 2,
+      "kind": "online"
+     },
+     "level": 2,
+     "ok": true,
+     "ram_extra": 2624.0,
+     "samples_s": [
+      0.3408910460000243,
+      0.3435791749999453,
+      0.33207676200004244,
+      0.3307286209999347,
+      0.3240484609999612
+     ],
+     "stats": {
+      "best_s": 0.3240484609999612,
+      "cv": 0.021252454742848984,
+      "median_s": 0.33207676200004244,
+      "n_samples": 5,
+      "p95_s": 0.3435791749999453,
+      "worst_s": 0.3435791749999453
+     }
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma_instr": 14,
+      "so": "/home/user/i/mlg/.build/fdee364bab6fbce5.so",
+      "so_sha256": "d3e4b942c96aed6a5d3fe720af270c95267a1f5ab8f71b5773fbc606920aa182",
+      "src_sha256": "89e668a2e3cfcc0920d9dd753637098079d1ba508984bd5a679546466a7e828c"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/vw512",
+      "reassociation": "allowed (-ffast-math)",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E4: identidade do softmax online (teorema em \u211d, qualquer blocagem)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "gate_ratios": {
+      "100x64": 0.0004230057236371349,
+      "1x64": 0.0,
+      "257x64": 0.00014780073555656066,
+      "33x64": 0.0009198785286513463,
+      "4099x64": 1.2972426517273315e-05,
+      "7x64": 0.00202734161242799,
+      "logits-grandes": 0.0019899337641171365
+     },
+     "generation": 1,
+     "genome": {
+      "BC": 16,
+      "BR": 2,
+      "FM": 1,
+      "ISA": "vw512",
+      "T": 1,
+      "kind": "online"
+     },
+     "level": 2,
+     "ok": true,
+     "ram_extra": 656.0,
+     "samples_s": [
+      0.1913387279998915,
+      0.19259410100005425,
+      0.2002857429999949,
+      0.1929852349999237,
+      0.18841174800002136
+     ],
+     "stats": {
+      "best_s": 0.18841174800002136,
+      "cv": 0.020317885585354706,
+      "median_s": 0.19259410100005425,
+      "n_samples": 5,
+      "p95_s": 0.2002857429999949,
+      "worst_s": 0.2002857429999949
+     }
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-ffast-math"
+      ],
+      "fma_instr": 28,
+      "so": "/home/user/i/mlg/.build/d9d9f4b1194b2b4a.so",
+      "so_sha256": "f850f88cef5f9cfcb8da3d2690294925c1872fadbb3954f3c9ddd10137a5d160",
+      "src_sha256": "c47c7ef65b75a27dbf577d606987cd90f49ee6cdebc9bf6cd09f0de56e62597e"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-ffast-math"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/default",
+      "reassociation": "allowed (-ffast-math)",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E4: identidade do softmax online (teorema em \u211d, qualquer blocagem)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "gate_ratios": {
+      "100x64": 0.0004809474381931843,
+      "1x64": 0.0,
+      "257x64": 0.00016846086341833604,
+      "33x64": 0.0008635110525862527,
+      "4099x64": 1.1567335174935794e-05,
+      "7x64": 0.002490046144948497,
+      "logits-grandes": 0.0017027155233926366
+     },
+     "generation": 1,
+     "genome": {
+      "BC": 64,
+      "BR": 4,
+      "FM": 1,
+      "ISA": "default",
+      "T": 4,
+      "kind": "online"
+     },
+     "level": 2,
+     "ok": true,
+     "ram_extra": 8320.0,
+     "samples_s": [
+      0.060072730000001684,
+      0.04793861099994956,
+      0.044649757000001955,
+      0.04447329399999944,
+      0.04470941199997469
+     ],
+     "stats": {
+      "best_s": 0.04447329399999944,
+      "cv": 0.12389682189684652,
+      "median_s": 0.04470941199997469,
+      "n_samples": 5,
+      "p95_s": 0.060072730000001684,
+      "worst_s": 0.060072730000001684
+     }
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-ffast-math"
+      ],
+      "fma_instr": 28,
+      "so": "/home/user/i/mlg/.build/a6c7e03db1bd6d64.so",
+      "so_sha256": "247b736883f52affd0916c18cab5fb6a17689d91da55a9ceeb683b0967cef196",
+      "src_sha256": "25df21faadfa558151c6c81ca3d02da67c161c5974fa97c6849ec8eddbf12280"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-ffast-math"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/default",
+      "reassociation": "allowed (-ffast-math)",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E0: reescrita sem prova",
+      "numeric": "an\u00e1lise de 1\u00aa ordem"
+     },
+     "gate_ratios": {
+      "100x64": 0.00038817828014755634,
+      "1x64": 0.003041589145890439,
+      "257x64": 0.0001708753518873822,
+      "33x64": 0.0009225012599961111,
+      "4099x64": 1.317295181148759e-05,
+      "7x64": 0.0027398784681800744,
+      "logits-grandes": Infinity
+     },
+     "generation": 1,
+     "genome": {
+      "FM": 1,
+      "ISA": "default",
+      "T": 2,
+      "kind": "row",
+      "rewrite": "no_max_subtract"
+     },
+     "level": 0,
+     "ok": false,
+     "ram_extra": 32768.0,
+     "why": "contraexemplo: erro infx a toler\u00e2ncia em logits-grandes"
+    },
+    {
+     "artifact": {
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma_instr": 14,
+      "so": "/home/user/i/mlg/.build/d97d01d829c501d1.so",
+      "so_sha256": "ad2d99db6fc8230bfc220dd367f6c4b544ca29492d1e322bb957e5679ae79a1e",
+      "src_sha256": "83526910a149ae02e82036011b153a1e955e0a6f60a3ea74b1d4fc531fac4cc4"
+     },
+     "contract": {
+      "assumptions": [
+       "expf com erro \u2264 8 ulp (libm/libmvec) \u2014 HIP\u00d3TESE",
+       "arredondamento ao mais pr\u00f3ximo (medido)",
+       "D = 64 especializado em tempo de compila\u00e7\u00e3o"
+      ],
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "daz": false,
+      "dtype": "float32",
+      "flags": [
+       "-O3",
+       "-march=native",
+       "-mprefer-vector-width=512",
+       "-ffast-math"
+      ],
+      "fma": true,
+      "ftz": false,
+      "isa": "x86_64/vw512",
+      "reassociation": "allowed (-ffast-math)",
+      "rounding": "nearest"
+     },
+     "evidence": {
+      "algorithm": "E4: identidade do softmax online (teorema em \u211d, qualquer blocagem)",
+      "numeric": "E2: toler\u00e2ncia por an\u00e1lise de 1\u00aa ordem (n\u00e3o teorema)"
+     },
+     "gate_ratios": {
+      "100x64": 0.0004230057236371349,
+      "1x64": 0.0,
+      "257x64": 0.00014780073555656066,
+      "33x64": 0.0009198785286513463,
+      "4099x64": 1.2972426517273315e-05,
+      "7x64": 0.00202734161242799,
+      "logits-grandes": 0.0019899337641171365
+     },
+     "generation": 1,
+     "genome": {
+      "BC": 16,
+      "BR": 4,
+      "FM": 1,
+      "ISA": "vw512",
+      "T": 4,
+      "kind": "online"
+     },
+     "level": 2,
+     "ok": true,
+     "ram_extra": 5248.0,
+     "samples_s": [
+      0.058453841000073226,
+      0.05432193299998289,
+      0.04364671299993006,
+      0.04393732400001227,
+      0.04481316199996854
+     ],
+     "stats": {
+      "best_s": 0.04364671299993006,
+      "cv": 0.12555342519471113,
+      "median_s": 0.04481316199996854,
+      "n_samples": 5,
+      "p95_s": 0.058453841000073226,
+      "worst_s": 0.058453841000073226
+     }
+    }
+   ],
+   "champion": "{\"BC\": 64, \"BR\": 4, \"FM\": 1, \"ISA\": \"default\", \"T\": 4, \"kind\": \"online\"}",
+   "dims": [
+    4096,
+    64
+   ],
+   "duel": null,
+   "frontier": {
+    "bytes_min": 4194304.0,
+    "champion_bytes_model": 4194304.0,
+    "champion_ram_extra": 8320.0,
+    "compute_lb_s": 0.006300669951346437,
+    "dominant_wall": "C\u00c1LCULO",
+    "efficiency_upper_bound": 0.14092491199280374,
+    "flops": 4294967296.0,
+    "frontier_moves": [
+     "reduzir opera\u00e7\u00f5es (outro algoritmo)",
+     "outro sil\u00edcio / mais n\u00facleos / ISA mais larga"
+    ],
+    "memory_lb_s": 8.900632757606077e-05,
+    "observed_median_s": 0.04470941199997469,
+    "observed_p95_s": 0.060072730000001684,
+    "remaining_at_least": 7.095977466716917,
+    "verdict": "A parede \u00e9 de c\u00e1lculo e o campe\u00e3o est\u00e1 a <= 14% dela: o ganho ainda est\u00e1 na IMPLEMENTA\u00c7\u00c3O (at\u00e9 7.1x). N\u00e3o adianta mexer em bytes."
+   },
+   "gate_cases": [
+    "1x64",
+    "7x64",
+    "33x64",
+    "100x64",
+    "257x64",
+    "4099x64",
+    "logits-grandes"
+   ],
+   "op": "attention",
+   "spec": "Y[S\u00d7D] = softmax(Q\u00b7K\u1d40/\u221aD)\u00b7V, Q,K,V: S\u00d7D (uma cabe\u00e7a, n\u00e3o causal)"
+  }
+ ],
+ "python": "3.11.15",
+ "schema": "mlg-report/2",
+ "seed": 4,
+ "trust_root": {
+  "probe.c_sha256": "89d6df8dda402ff207e12513f73003bce38bcda7bfd0bddf52d30f861ac1650f",
+  "promotion_min_level": 2
+ },
+ "when": "2026-10-03T14:03:54+0000"
+}

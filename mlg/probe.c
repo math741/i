@@ -64,20 +64,28 @@ void mlg_poison(float *x, long n) {
     for (long i = 0; i < n; i++) x[i] = NAN;
 }
 
-/* ---------- gate de verificação ----------
- * Referência em double: R = A·B e S = |A|·|B|.
- * Teorema (Higham, Accuracy and Stability of Numerical Algorithms, 2ª ed., §3.1; ver também
- * Jeannerod & Rump 2013): sob arredondamento ao mais próximo e sem underflow/overflow,
- * QUALQUER ordem de avaliação do produto interno de K termos satisfaz
- *     |Ĉ_ij − C_ij| ≤ γ_K · (|A|·|B|)_ij,  γ_K = K·u / (1 − K·u),  u = 2^-24.
- * As hipóteses são garantidas pelo domínio de entrada (mlg_fill gera múltiplos de 2^-23 em
- * [-1,1]: todo valor intermediário, com ou sem FMA, é múltiplo de 2^-69, logo nunca subnormal;
- * |soma| ≤ K ≪ FLT_MAX) e o modo de arredondamento é medido em mlg_fp_env.
- *
- * Nível de evidência: violar o limite é CONTRAEXEMPLO (prova de bug, dado o contrato).
- * Passar é evidência diferencial nível 2, não prova: provar que o binário calcula uma
- * soma de produtos arredondados em alguma ordem é exatamente o que Rice impede em geral. */
-void mlg_ref(int M, int N, int K, const float *A, const float *B, double *R, double *S) {
+void mlg_fill_scaled(float *x, long n, uint32_t seed, float scale) {
+    mlg_fill(x, n, seed);
+    for (long i = 0; i < n; i++) x[i] *= scale; /* scale = potência de 2: continua exato */
+}
+
+/* ================================ RAIZ DE CONFIANÇA ================================
+ * Para cada operação a raiz fornece: referência em double + TOLERÂNCIA por elemento
+ * derivada de uma análise de erro. O comparador é um só (mlg_check_tol).
+ * Violar a tolerância é CONTRAEXEMPLO (prova de bug, dado o contrato).
+ * Passar é evidência E2 (diferencial), não prova: provar que o binário implementa o
+ * algoritmo analisado é o que Rice impede em geral.
+ * ================================================================================== */
+
+/* ---------- GEMM: C = A·B ----------
+ * Teorema (Higham, Accuracy and Stability of Numerical Algorithms, 2ª ed., §3.1): sob
+ * arredondamento ao mais próximo e sem underflow/overflow, QUALQUER ordem de avaliação do
+ * produto interno de K termos satisfaz |Ĉ_ij − C_ij| ≤ γ_K·(|A|·|B|)_ij, γ_K = Ku/(1−Ku).
+ * Hipóteses garantidas pelo domínio: entradas múltiplas de 2^-23 em [-1,1] => todo valor
+ * intermediário (com ou sem FMA) é múltiplo de 2^-69, nunca subnormal; |soma| ≤ K. */
+void mlg_gemm_ref(int M, int N, int K, const float *A, const float *B, double *R, double *T) {
+    const double u = FLT_EPSILON / 2;
+    const double g = K * u / (1 - K * u) + 2 * K * DBL_EPSILON; /* + erro do próprio double */
     for (int i = 0; i < M; i++)
         for (int j = 0; j < N; j++) {
             double s = 0, sa = 0;
@@ -87,20 +95,74 @@ void mlg_ref(int M, int N, int K, const float *A, const float *B, double *R, dou
                 sa += fabs(p);
             }
             R[(long)i * N + j] = s;
-            S[(long)i * N + j] = sa;
+            T[(long)i * N + j] = g * sa;
         }
 }
 
-/* Retorna max(erro / limite_provado). <= 1 passa; > 1 é prova de bug. */
-double mlg_check(int M, int N, int K, const float *C, const double *R, const double *S) {
-    const double u = FLT_EPSILON / 2;
-    const double g = K * u / (1 - K * u) + 2 * K * DBL_EPSILON; /* + folga do próprio double */
+/* ---------- ATENÇÃO: Y = softmax(Q·Kᵀ/√D)·V  (Q, K, V: S×D) ----------
+ * Semântica: a identidade do softmax online (máximo corrente m, normalizador l, saída o com
+ * reescala por exp(m_velho − m_novo)) é exata em ℝ; isso é teorema, vale para qualquer
+ * blocagem. A tolerância numérica abaixo é uma análise de PRIMEIRA ORDEM (não teorema):
+ *   erro no expoente de cada peso: γ_D·(|q|·|k|)/√D + 2u|s| + u·R   (R = m − min s)
+ *   exp: ≤ 8 ulp = 16u (HIPÓTESE sobre a libm/libmvec, registrada no contrato)
+ *   reescalas do softmax online: ≤ S−1, cada uma com ≤ 16u + 2u; a soma dos |Δm| é ≤ R
+ *   normalização e acumulação P·V: 2γ_S + 2u
+ *   |Ŷ − Y| ≤ 2·(2η + 2γ_S + 2u)·Σ_j p_j|v_j|   (fator 2 cobre termos de 2ª ordem)
+ * Underflow de exp(s − m) é benigno: o termo do máximo vale 1, então o erro absoluto ≤ S·2^-126.
+ * Overflow é impossível SE o máximo for subtraído — é exatamente isso que o caso de
+ * logits grandes do gate testa. */
+void mlg_attn_ref(int S, int D, const float *Q, const float *K, const float *V, double *R, double *T) {
+    const double u = FLT_EPSILON / 2, sc = 1.0 / sqrt((double)D);
+    const double gD = D * u / (1 - D * u), gS = S * u / (1 - S * u), eexp = 16 * u;
+    double *s = malloc(S * sizeof(double)), *a = malloc(S * sizeof(double));
+    for (int i = 0; i < S; i++) {
+        double m = -INFINITY, mn = INFINITY;
+        for (int j = 0; j < S; j++) {
+            double d = 0, da = 0;
+            for (int c = 0; c < D; c++) {
+                double p = (double)Q[(long)i * D + c] * (double)K[(long)j * D + c];
+                d += p;
+                da += fabs(p);
+            }
+            s[j] = d * sc;
+            a[j] = da * sc;
+            if (s[j] > m) m = s[j];
+            if (s[j] < mn) mn = s[j];
+        }
+        const double Rg = m - mn;
+        double eta = 0;
+        for (int j = 0; j < S; j++) {
+            double e = gD * a[j] + 2 * u * fabs(s[j]);
+            if (e > eta) eta = e;
+        }
+        eta += u * Rg + eexp + (S - 1) * (eexp + 2 * u) + u * Rg;
+        double sum = 0;
+        for (int j = 0; j < S; j++) {
+            s[j] = exp(s[j] - m);
+            sum += s[j];
+        }
+        for (int c = 0; c < D; c++) {
+            double y = 0, ya = 0;
+            for (int j = 0; j < S; j++) {
+                double p = s[j] / sum, v = V[(long)j * D + c];
+                y += p * v;
+                ya += p * fabs(v);
+            }
+            R[(long)i * D + c] = y;
+            T[(long)i * D + c] = 2 * (2 * eta + 2 * gS + 2 * u) * ya + 1e-300;
+        }
+    }
+    free(s);
+    free(a);
+}
+
+/* ---------- comparador único: max(|out − ref| / tol). <= 1 passa; > 1 é contraexemplo ---------- */
+double mlg_check_tol(long n, const float *out, const double *R, const double *T) {
     double worst = 0;
-    for (long i = 0; i < (long)M * N; i++) {
-        double c = C[i];
+    for (long i = 0; i < n; i++) {
+        double c = out[i];
         if (!isfinite(c)) return INFINITY;
-        double err = fabs(c - R[i]), bound = g * S[i];
-        double ratio = bound > 0 ? err / bound : (err > 0 ? INFINITY : 0);
+        double ratio = fabs(c - R[i]) / T[i];
         if (ratio > worst) worst = ratio;
     }
     return worst;
