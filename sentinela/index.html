@@ -57,6 +57,11 @@ select option{background:#0b1726;color:var(--ink)}
 .chip[data-s="on"] i{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
 .chip[data-s="wait"] i{background:var(--amber)}
 .chip[data-s="off"] i{background:#5a2531}
+.diag{font-size:11.5px;color:var(--dim);margin:10px 0 0;line-height:1.55;letter-spacing:.02em}
+.diag b{color:var(--ink);font-weight:600}
+.diag .good{color:var(--cyan)}
+.diag .bad{color:var(--hot)}
+a.btn{text-decoration:none;display:inline-block}
 .collapsed .lede,.collapsed .grid,.collapsed .chips,.collapsed .note{display:none}
 #feed2d{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(40px + env(safe-area-inset-top,0px));width:240px;max-width:40vw;border:1px solid var(--edge);border-radius:3px;background:#000}
 @media (max-width:640px){.panel{padding:16px}.chips{grid-template-columns:1fr 1fr}.lede{font-size:13px}}
@@ -73,18 +78,23 @@ select option{background:#0b1726;color:var(--ink)}
       <button class="min" id="bMin" aria-label="Recolher painel" aria-expanded="true">–</button>
     </div>
     <h1>SENTINELA<span>XR</span></h1>
-    <p class="lede">Arremesse uma bola de verdade ou uma bola virtual. O Sentinela trava no objeto, mostra a velocidade em km/h e apita mais rápido conforme o impacto se aproxima. Quanto maior a velocidade, mais alto o alerta. No impacto, POU.</p>
+    <p class="lede">Arremesse uma bola de verdade ou uma bola virtual. O Sentinela trava no objeto, mostra a velocidade em km/h e apita mais rápido conforme o impacto se aproxima. Quanto maior a velocidade, mais alto o alerta. No impacto, POU. Sem câmera, ligue o microfone: ele mede o arremesso real pela sua mão e pelo som da batida.</p>
     <div class="actions">
       <button class="btn primary" id="bEnter">Entrar na realidade mista</button>
-      <button class="btn" id="bCam">Ativar câmeras · objetos reais</button>
+      <button class="btn" id="bCam">Ativar câmeras</button>
+      <button class="btn" id="bMic">Ativar microfone</button>
+      <a class="btn" id="aDirect" href="#" target="_blank" rel="noopener" hidden>Abrir link direto ↗</a>
     </div>
     <div class="grid">
+      <span>Câmera</span>
+      <div><select id="selCam" aria-label="Câmera usada"><option value="">Automática (traseira do headset)</option></select></div>
       <span>Bola real</span>
       <div><select id="selBall" aria-label="Tipo de bola real"></select><select id="selColor" aria-label="Cor da bola real"></select></div>
       <span>Qualidade</span>
       <div><div class="seg" id="segQ" role="group" aria-label="Qualidade"><button data-q="fluida">Fluida</button><button data-q="alta">Alta</button><button data-q="ultra">Ultra</button></div><button class="btn" id="bSound" style="padding:7px 11px">Som ligado</button></div>
     </div>
     <p class="note" id="note" hidden></p>
+    <p class="diag" id="diag"></p>
     <ul class="chips" id="chips"></ul>
   </div>
 </section>
@@ -95,7 +105,9 @@ select option{background:#0b1726;color:var(--ink)}
 <script type="module">
 import * as THREE from 'three';
 
-const DIRECT_URL = 'https://math741.github.io/i/sentinela/';
+const DIRECT_URL = 'https://raw.githack.com/math741/i/main/sentinela/index.html';
+const inFrame = (() => { try { return window.self !== window.top; } catch { return true; } })();
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const $ = (s) => document.querySelector(s);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -335,7 +347,7 @@ const head = { p: V(0, 1.6, 1.4), q: new THREE.Quaternion(), fwd: V(0, 0, -1), r
 const worldGroup = new THREE.Group(); scene.add(worldGroup);
 const previewGroup = new THREE.Group(); scene.add(previewGroup);
 let mode = 'preview', session = null, frameNo = 0;
-const sys = { ar: false, vr: false, blocked: false, hands: false, planes: false, meshes: false, depth: false, anchors: false, hit: false, layers: false, camera: false, hz: 0 };
+const sys = { ar: false, vr: false, blocked: false, mic: false, camXR: false, hands: false, planes: false, meshes: false, depth: false, anchors: false, hit: false, layers: false, camera: false, hz: 0 };
 const stats = { max: store.get('max', 0), handMax: store.get('handMax', 0), last: 0, impacts: 0, throws: 0, score: 0 };
 
 // colliders: plane space has +Y as surface normal
@@ -545,7 +557,7 @@ function drawCard(now, prim) {
     const w = txt(g, f1(k), 26, 190, 140, acc, 800, FD); txt(g, 'km/h', 36 + w, 190, 38, CSS.dim, 600, FU);
     txt(g, `${prim.kind === 'real' ? 'REAL' : 'OBJ'} ${pad(prim.id % 100)} · ${f1(prim.speed)} m/s · ${f1(prim.dist)} m`, 30, 238, 26, CSS.ink, 600);
     txt(g, prim.closing > 0.3 ? `aproximando ${f1(prim.closing * KMH)} km/h${isFinite(prim.tti) ? ' · ' + f2(prim.tti) + ' s' : ''}` : prim.closing < -0.3 ? 'afastando de você' : 'lateral', 30, 274, 24, prim.closing > 0.3 ? CSS.hot : CSS.dim, 600);
-  } else { txt(g, '— —', 26, 190, 120, CSS.dim, 800, FD); txt(g, sensor.on ? 'câmeras procurando objetos' : 'pegue uma bola e arremesse', 30, 250, 26, CSS.dim, 600); }
+  } else { txt(g, '— —', 26, 190, 120, CSS.dim, 800, FD); txt(g, sensor.on ? 'câmeras procurando objetos' : ear.on ? 'arremesse uma bola real' : 'pegue uma bola e arremesse', 30, 250, 26, CSS.dim, 600); }
   g.fillStyle = 'rgba(110,215,255,.25)'; g.fillRect(30, 300, 580, 2);
   const cell = (lbl, val, x, y) => { txt(g, lbl, x, y, 18, CSS.dim, 600, FU, 'left', 2); txt(g, val, x + 262, y, 23, CSS.ink, 700, FU, 'right'); };
   cell('RECORDE', f1(stats.max) + ' km/h', 30, 342); cell('IMPACTO', f1(stats.last) + ' km/h', 330, 342); cell('MÃO MÁX.', f1(stats.handMax) + ' km/h', 30, 380); cell('ALVO', stats.score + ' pts', 330, 380);
@@ -558,11 +570,13 @@ function drawPill() { const g = pill.g; plate(g, 320, 96, CSS.cyan, 0.8, 0.3); f
 const menu = new Panel(1024, 1300, 0.52, 40); menu.mesh.visible = false; scene.add(menu.mesh);
 let menuHover = null;
 const MB = [];
-(() => { const cols = [36, 530], w = 458, h = 116; const ids = [['cam', 'calib'], ['ball', 'color'], ['spawn', 'clear'], ['target', 'untarget'], ['room', 'occl'], ['vol', 'hz'], ['scan', 'exit']]; ids.forEach((row, r) => row.forEach((id, c) => MB.push({ id, x: cols[c], y: 236 + r * 134, w, h }))); MB.push({ id: 'close', x: 800, y: 36, w: 188, h: 86 }); })();
+(() => { const cols = [36, 530], w = 458, h = 100; const ids = [['cam', 'mic'], ['calib', 'color'], ['ball', 'spawn'], ['clear', 'target'], ['untarget', 'room'], ['occl', 'vol'], ['hz', 'scan'], ['reset', 'exit']]; ids.forEach((row, r) => row.forEach((id, c) => MB.push({ id, x: cols[c], y: 236 + r * 118, w, h }))); MB.push({ id: 'close', x: 800, y: 36, w: 188, h: 86 }); })();
 function btnText(id) {
   const ball = BALLS[prefs.ball], color = COLORS[prefs.color];
   switch (id) {
-    case 'cam': return ['CÂMERAS', sensor.on ? 'LIGADAS' : sensor.failed ? 'INDISPONÍVEIS' : 'DESLIGADAS', sensor.on];
+    case 'cam': return ['CÂMERAS', sensor.on ? `LIGADAS · ${Math.round(sensor.fps)} fps` : sensor.failed ? 'INDISPONÍVEIS' : 'DESLIGADAS', sensor.on];
+    case 'mic': return ['MICROFONE', ear.on ? `LIGADO · nível ${Math.round(Math.min(1, ear.level * 4) * 100)}%` : ear.failed ? 'INDISPONÍVEL' : 'DESLIGADO', ear.on];
+    case 'reset': return ['ZERAR RECORDES', `recorde ${f1(stats.max)} km/h`, false];
     case 'calib': return ['CALIBRAR COR', 'bola no centro', false];
     case 'ball': return ['BOLA REAL', `${ball[0]} · ${f1(ball[1] * 100)} cm`, false];
     case 'color': return ['COR DA BOLA', prefs.hue !== null ? `calibrada · ${Math.round(prefs.hue)}°` : color[0], false];
@@ -582,9 +596,9 @@ function btnText(id) {
 }
 function drawMenu() {
   const g = menu.g; plate(g, 1024, 1300, CSS.cyan, 0.86, 0.05);
-  txt(g, 'SENTINELA', 40, 92, 84, CSS.ink, 800, FD, 'left', 2); txt(g, 'XR · MENU', 400, 92, 30, CSS.cyan, 700, FU, 'left', 5);
+  const tw = txt(g, 'SENTINELA', 40, 92, 84, CSS.ink, 800, FD, 'left', 2); txt(g, 'XR · MENU', 40 + tw + 26, 92, 30, CSS.cyan, 700, FU, 'left', 5);
   const on = (b) => (b ? '●' : '○');
-  txt(g, `MÃOS ${on(sys.hands)}  PLANOS ${on(sys.planes)}  MALHA ${on(sys.meshes)}  PROFUNDIDADE ${on(sys.depth)}  ÂNCORAS ${on(sys.anchors)}  HIT-TEST ${on(sys.hit)}  CÂMERA ${on(sensor.on)}`, 40, 150, 22, CSS.dim, 600, FU, 'left', 1);
+  txt(g, `MÃOS ${on(sys.hands)}  PLANOS ${on(sys.planes)}  MALHA ${on(sys.meshes)}  PROF ${on(sys.depth)}  ÂNCORAS ${on(sys.anchors)}  HIT ${on(sys.hit)}  CÂM ${on(sensor.on)}  CÂM-XR ${on(sys.camXR)}  MIC ${on(ear.on)}`, 40, 150, 19, CSS.dim, 600, FU, 'left', 0);
   txt(g, `RECORDE ${f1(stats.max)} km/h · IMPACTOS ${stats.impacts} · ARREMESSOS ${stats.throws} · ALVO ${stats.score} pts`, 40, 196, 24, CSS.ink, 600, FU, 'left', 1);
   for (const b of MB) {
     const [t1, t2, act] = btnText(b.id), hov = menuHover === b.id;
@@ -592,7 +606,7 @@ function drawMenu() {
     g.strokeStyle = hov || act ? CSS.cyan : 'rgba(110,215,255,.28)'; g.lineWidth = hov ? 4 : 2; g.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
     if (b.id === 'close') { txt(g, t1, b.x + b.w / 2, b.y + 56, 30, CSS.ink, 700, FU, 'center', 4); continue; }
     if (b.id === 'exit') { g.fillStyle = 'rgba(255,59,92,.18)'; g.fillRect(b.x, b.y, b.w, b.h); }
-    txt(g, t1, b.x + 26, b.y + 50, 30, CSS.ink, 700, FU, 'left', 3); txt(g, t2, b.x + 26, b.y + 92, 26, act ? CSS.cyan : CSS.dim, 600, FU, 'left', 1);
+    txt(g, t1, b.x + 26, b.y + 44, 29, CSS.ink, 700, FU, 'left', 3); txt(g, t2, b.x + 26, b.y + 82, 24, act ? CSS.cyan : CSS.dim, 600, FU, 'left', 1);
   }
   txt(g, 'Pinça, mão fechada, GRIP ou gatilho pegam uma bola. Solte para arremessar.', 40, 1222, 25, CSS.dim, 600);
   txt(g, 'A ou X abrem e fecham este menu. B ou Y criam uma bola na mão.', 40, 1262, 25, CSS.dim, 600);
@@ -608,7 +622,9 @@ async function clickButton(id, st) {
   sfx.ui(); if (st) pulse(st, 0.25, 18);
   switch (id) {
     case 'close': openMenu(false); break;
-    case 'cam': if (sensor.on) sensor.stop(); else { say('LIGANDO CÂMERAS', 'se o Quest pedir permissão, aceite e entre de novo', CSS.amber, 5000); try { await sensor.start(); say('CÂMERAS ATIVAS', 'arremesse uma bola na frente do headset', CSS.cyan); } catch (e) { say('CÂMERAS INDISPONÍVEIS', sensor.why(e), CSS.amber, 6000); } } break;
+    case 'cam': if (sensor.on) sensor.stop(); else { say('LIGANDO CÂMERAS', 'se o Quest pedir permissão, aceite e entre de novo', CSS.amber, 5000); try { await sensor.start(); say('CÂMERAS ATIVAS', 'arremesse uma bola na frente do headset', CSS.cyan); } catch (e) { sensor.failed = true; sensor.err = e; say('CÂMERAS INDISPONÍVEIS', sensor.why(e), CSS.amber, 7000); } } break;
+    case 'mic': if (ear.on) ear.stop(); else { try { await ear.start(); say('MICROFONE ATIVO', 'arremesse uma bola real: mão + som da batida medem a velocidade', CSS.cyan, 6000); } catch (e) { ear.failed = true; ear.err = e; say('MICROFONE INDISPONÍVEL', whyMedia(e, 'microfone'), CSS.amber, 7000); } } break;
+    case 'reset': stats.max = stats.handMax = stats.last = stats.score = 0; store.set('max', 0); store.set('handMax', 0); break;
     case 'calib': sensor.calibrate(); break;
     case 'ball': { const k = Object.keys(BALLS); prefs.ball = k[(k.indexOf(prefs.ball) + 1) % k.length]; store.set('ball', prefs.ball); syncSelects(); break; }
     case 'color': { const k = Object.keys(COLORS); prefs.color = prefs.hue !== null ? prefs.color : k[(k.indexOf(prefs.color) + 1) % k.length]; prefs.hue = null; store.set('hue', null); store.set('color', prefs.color); syncSelects(); break; }
@@ -673,7 +689,7 @@ for (let i = 0; i < 4; i++) {
   const tips = TIPS.map(() => { const s = addSprite(TEX.glow, COL.cyan, 12); s.material.depthTest = true; s.scale.setScalar(0.022); s.visible = false; scene.add(s); return s; });
   const shield = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.075, 48), new THREE.MeshBasicMaterial({ color: COL.cyan, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })); shield.renderOrder = 11; scene.add(shield);
   const lbl = new Label(300, 80); lbl.s.visible = false; scene.add(lbl.s);
-  const st = { i, ray, grip, hand, beam, dot, tips, shield, lbl, src: null, active: false, isHand: false, side: 'right', palm: V(), prev: V(), vel: V(), velS: V(), speed: 0, hist: [], held: null, heldBy: '', fist: false, hover: null, btnPrev: [], peak: 0, peakT: 0, lblAt: 0, hitSrc: null, hitRes: null, hitM: null, envHit: null, havePos: false, pinch: V() };
+  const st = { i, ray, grip, hand, beam, dot, tips, shield, lbl, src: null, active: false, isHand: false, side: 'right', palm: V(), prev: V(), vel: V(), velS: V(), speed: 0, hist: [], held: null, heldBy: '', fist: false, peakPos: V(), peakVel: V(), relT: -1e9, hover: null, btnPrev: [], peak: 0, peakT: 0, lblAt: 0, hitSrc: null, hitRes: null, hitM: null, envHit: null, havePos: false, pinch: V() };
   ray.addEventListener('connected', (e) => { st.src = e.data; st.active = true; st.isHand = !!e.data.hand; st.side = e.data.handedness || 'right'; st.havePos = false; st.hist.length = 0; });
   ray.addEventListener('disconnected', () => { if (st.held) release(st); st.active = false; st.src = null; st.dot.visible = false; st.beam.visible = false; st.tips.forEach((s) => (s.visible = false)); st.lbl.s.visible = false; st.shield.visible = false; if (st.hitSrc) { try { st.hitSrc.cancel(); } catch {} st.hitSrc = null; } });
   ray.addEventListener('selectstart', () => onSelectStart(st));
@@ -696,7 +712,7 @@ function grab(st, how) {
   best.state = 'held'; best.float = false; best.holder = st; st.held = best; best.vel.set(0, 0, 0); sfx.grab(p); pulse(st, 0.3, 25);
 }
 function release(st) {
-  const b = st.held; st.held = null; if (!b || !b.alive) return; b.state = 'free'; b.holder = null; b.noSelf = performance.now() + 350;
+  const b = st.held; st.held = null; st.relT = performance.now(); if (!b || !b.alive) return; b.state = 'free'; b.holder = null; b.noSelf = performance.now() + 350;
   releaseVel(st, b.vel); const kmh = b.vel.length() * KMH; b.peak = kmh;
   if (kmh > 5) { stats.throws++; sfx.throwS(b.pos, clamp(kmh / 80, 0, 1)); fx.pop(b.pos, 'ARREMESSO', f1(kmh) + ' km/h', speedCss(kmh)); if (kmh > stats.max) { stats.max = kmh; store.set('max', kmh); } pulse(st, clamp(kmh / 60, 0.2, 1), 35); }
 }
@@ -743,9 +759,13 @@ function updateInputs(dt, now, frame) {
     st.hist.push({ t: now, x: st.palm.x, y: st.palm.y, z: st.palm.z }); if (st.hist.length > 14) st.hist.shift();
     // hand speed meter + peak detection
     const k = st.speed * KMH;
-    if (k > 12) { if (k > st.peak) { st.peak = k; st.peakT = now; } }
-    else if (st.peak > 0 && (k < st.peak * 0.5 || now - st.peakT > 400)) {
-      if (st.peak > 18 && !st.held) { if (st.peak > stats.handMax) { stats.handMax = st.peak; store.set('handMax', st.peak); } fx.pop(st.palm, st.isHand ? 'MÃO · PICO' : 'CONTROLE · PICO', f1(st.peak) + ' km/h', speedCss(st.peak)); }
+    if (k > 12) { if (k > st.peak) { st.peak = k; st.peakT = now; st.peakPos.copy(st.palm); st.peakVel.copy(st.velS); } }
+    else if (st.peak > 0 && (k < st.peak * 0.6 || now - st.peakT > 400)) {
+      if (st.peak > 18 && !st.held && now - st.relT > 700) {
+        if (st.peak > stats.handMax) { stats.handMax = st.peak; store.set('handMax', st.peak); }
+        if (ear.on && st.isHand && st.peakVel.dot(head.fwd) > 0.3 * st.peakVel.length()) startAcousticThrow(st);
+        else fx.pop(st.palm, st.isHand ? 'MÃO · PICO' : 'CONTROLE · PICO', f1(st.peak) + ' km/h', speedCss(st.peak));
+      }
       st.peak = 0;
     }
     const L = st.lbl; L.s.visible = k > 6; if (L.s.visible) { if (now - st.lblAt > 100) { st.lblAt = now; const g = L.g; g.clearRect(0, 0, 300, 80); g.fillStyle = 'rgba(4,12,20,.6)'; g.fillRect(0, 8, 300, 64); g.fillStyle = speedCss(k); g.fillRect(0, 8, 6, 64); const w = txt(g, f1(k), 18, 62, 50, speedCss(k), 800, FD); txt(g, 'km/h', 26 + w, 62, 22, CSS.dim, 600); L.commit(); } L.s.position.copy(st.palm).addScaledVector(UP, 0.09); L.size(clamp(st.palm.distanceTo(head.p) * 0.05, 0.03, 0.1)); }
@@ -870,19 +890,27 @@ const sensor = (() => {
   const s = { on: false, failed: false, stream: null, det: null, fps: 0, devLabel: '', last: 0, feedAt: 0, cs: 0, rv: 0, fresh: false, hfov: 72 * Math.PI / 180, off: V(-0.032, -0.012, -0.06), calibUntil: 0 };
   const hueOf = () => (prefs.hue !== null ? prefs.hue : COLORS[prefs.color][1]);
   const hsvOk = (r, g, b, hue) => { const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (mx < 60 || d < mx * 0.36) return false; let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360; return Math.abs(((h - hue + 540) % 360) - 180) <= 20; };
-  s.why = (e) => (e && e.name === 'NotAllowedError' ? 'permissão negada: libere a câmera do site nas configurações' : e && e.message === 'sem-api' ? 'este navegador não expõe as câmeras' : 'o navegador do Quest não liberou as câmeras');
-  s.start = async () => {
-    const md = navigator.mediaDevices; if (!md || !md.getUserMedia) throw new Error('sem-api');
-    const pick = (list) => list.find((d) => /camera ?1\b.*back|back.*camera ?1\b/i.test(d.label)) || list.find((d) => /facing back|back|rear|environment|traseira/i.test(d.label)) || null;
-    const cons = (id) => ({ audio: false, video: { ...(id ? { deviceId: { exact: id } } : { facingMode: { ideal: 'environment' } }), width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } } });
-    let cams = (await md.enumerateDevices()).filter((d) => d.kind === 'videoinput'), dev = pick(cams);
-    let stream = await md.getUserMedia(cons(dev && dev.deviceId));
-    if (!dev) { cams = (await md.enumerateDevices()).filter((d) => d.kind === 'videoinput'); const d2 = pick(cams); const cur = stream.getVideoTracks()[0].getSettings().deviceId; if (d2 && d2.deviceId !== cur) { stream.getTracks().forEach((t) => t.stop()); stream = await md.getUserMedia(cons(d2.deviceId)); } }
-    s.stream = stream; video.srcObject = stream; await video.play(); s.on = true; s.failed = false; s.devLabel = stream.getVideoTracks()[0].label || 'câmera';
-    if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) { const cb = (now) => { s.fresh = true; s.rv = performance.now(); if (s.on) video.requestVideoFrameCallback(cb); }; video.requestVideoFrameCallback(cb); }
-    sys.camera = true; renderChips(); return true;
+  s.devices = []; s.deviceId = store.get('camId', ''); s.err = null; s.curId = '';
+  s.why = (e) => whyMedia(e, 'câmera');
+  const pick = (list) => list.find((d) => /camera ?1\b.*back|back.*camera ?1\b/i.test(d.label)) || list.find((d) => /facing back|back|rear|environment|traseira/i.test(d.label)) || null;
+  s.start = async (wantId) => {
+    if (!window.isSecureContext) throw Object.assign(new Error('inseguro'), { name: 'InsecureContext' });
+    const md = navigator.mediaDevices; if (!md || !md.getUserMedia) throw Object.assign(new Error('sem-api'), { name: 'NoAPI' });
+    const id = wantId !== undefined ? wantId : s.deviceId, base = { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } };
+    const tries = []; if (id) tries.push({ ...base, deviceId: { exact: id } }); tries.push({ ...base, facingMode: { ideal: 'environment' } }, base, true);
+    let stream = null, err = null;
+    for (const v of tries) { try { stream = await md.getUserMedia({ audio: false, video: v }); break; } catch (e) { err = e; if (e.name === 'NotAllowedError' || e.name === 'SecurityError') break; } }
+    if (!stream) { s.err = err || Object.assign(new Error('sem câmera'), { name: 'NotFoundError' }); throw s.err; }
+    try { s.devices = (await md.enumerateDevices()).filter((d) => d.kind === 'videoinput'); } catch { s.devices = []; }
+    if (!id) { const pref = pick(s.devices), cur = stream.getVideoTracks()[0].getSettings().deviceId; if (pref && pref.deviceId && pref.deviceId !== cur) { try { const st2 = await md.getUserMedia({ audio: false, video: { ...base, deviceId: { exact: pref.deviceId } } }); stream.getTracks().forEach((t) => t.stop()); stream = st2; } catch {} } }
+    if (s.stream && s.stream !== stream) s.stream.getTracks().forEach((t) => t.stop());
+    s.stream = stream; video.srcObject = stream; try { await video.play(); } catch {} s.on = true; s.failed = false; s.err = null;
+    const tr = stream.getVideoTracks()[0]; s.devLabel = tr.label || 'câmera'; s.curId = (tr.getSettings && tr.getSettings().deviceId) || '';
+    tr.addEventListener('ended', () => { if (s.stream === stream) { s.on = false; s.err = { name: 'Ended', message: 'o sistema desligou a câmera' }; renderChips(); updateDiag(); } });
+    if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) { const cb = () => { s.fresh = true; s.rv = performance.now(); if (s.on && s.stream === stream) video.requestVideoFrameCallback(cb); }; video.requestVideoFrameCallback(cb); }
+    sys.camera = true; renderChips(); fillCamSelect(); updateDiag(); return true;
   };
-  s.stop = () => { if (s.stream) s.stream.getTracks().forEach((t) => t.stop()); s.stream = null; s.on = false; s.det = null; video.srcObject = null; if (realObj) endReal(performance.now(), true); renderChips(); };
+  s.stop = () => { if (s.stream) s.stream.getTracks().forEach((t) => t.stop()); s.stream = null; s.on = false; s.det = null; video.srcObject = null; if (realObj) endReal(performance.now(), true); renderChips(); updateDiag(); };
   s.calibrate = () => {
     if (!s.on) { say('LIGUE AS CÂMERAS PRIMEIRO', 'menu → câmeras', CSS.amber); return; }
     s.calibUntil = performance.now() + 3000; say('CALIBRANDO COR', 'segure a bola no centro da visão por 3 s', CSS.amber, 3000);
@@ -973,12 +1001,82 @@ function updateReal(now, dt) {
   if (realObj) { const o = realObj, ext = Math.min(0.1, (now - o.tLast) / 1000); o.pos.copy(o.mpos).addScaledVector(o.vel, ext); o.ring.position.copy(o.pos); o.ring.scale.setScalar(Math.max(o.r * 6, o.dist * 0.04)); o.ring.material.color.copy(o.color); o.ring.visible = o.confirmed; }
 }
 
+// ---------- media errors in plain words
+function whyMedia(e, what) {
+  const n = e && e.name, W = what === 'câmera' ? 'Câmera' : 'Microfone';
+  if (n === 'InsecureContext') return 'a página precisa abrir por HTTPS. Use o link direto';
+  if (n === 'NoAPI') return `este navegador não libera ${what} para sites. No Quest, ative chrome://flags → Experimental Web Platform features e reinicie o navegador`;
+  if (n === 'NotAllowedError' || n === 'SecurityError') return inFrame ? `a página do Claude bloqueia ${what}. Toque em "Abrir link direto"` : `permissão negada. No navegador do Quest: menu ⋯ → Configurações → Permissões do site → ${W} → Permitir, e recarregue`;
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return what === 'câmera' ? 'o navegador não mostra nenhuma câmera. No Quest, ative chrome://flags → Experimental Web Platform features e reinicie o navegador' : 'nenhum microfone encontrado';
+  if (n === 'NotReadableError' || n === 'AbortError') return `${what} ocupada por outro app. Feche o app e tente de novo`;
+  if (n === 'Ended') return e.message;
+  return `${n || 'erro'}: ${(e && e.message) || 'sem detalhes'}`;
+}
+
+// ---------- microphone: hears the real impact (POU) to time the flight
+const ear = (() => {
+  const e = { on: false, failed: false, err: null, stream: null, an: null, buf: null, floor: 0.004, lastCtx: 0, cool: 0, level: 0, events: [] };
+  e.start = async () => {
+    sfx.init(); if (!window.isSecureContext) throw Object.assign(new Error('inseguro'), { name: 'InsecureContext' });
+    const md = navigator.mediaDevices; if (!md || !md.getUserMedia) throw Object.assign(new Error('sem-api'), { name: 'NoAPI' }); if (!sfx.ctx) throw Object.assign(new Error('sem áudio'), { name: 'NoAPI' });
+    const st = await md.getUserMedia({ video: false, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    const c = sfx.ctx, src = c.createMediaStreamSource(st), hp = c.createBiquadFilter(), l1 = c.createBiquadFilter(), l2 = c.createBiquadFilter(), an = c.createAnalyser(), mute = c.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 60; l1.type = l2.type = 'lowpass'; l1.frequency.value = l2.frequency.value = 650; an.fftSize = 2048; mute.gain.value = 0;
+    src.connect(hp); hp.connect(l1); l1.connect(l2); l2.connect(an); an.connect(mute); mute.connect(c.destination);
+    if (e.stream) e.stream.getTracks().forEach((t) => t.stop());
+    e.stream = st; e.an = an; e.buf = new Float32Array(an.fftSize); e.lastCtx = c.currentTime; e.on = true; e.failed = false; e.err = null; sys.mic = true; renderChips(); updateDiag(); return true;
+  };
+  e.stop = () => { if (e.stream) e.stream.getTracks().forEach((t) => t.stop()); e.stream = null; e.on = false; e.an = null; renderChips(); updateDiag(); };
+  e.poll = (now) => {
+    if (!e.on || !e.an || !sfx.ctx) return; const c = sfx.ctx, N = e.buf.length, sr = c.sampleRate, ct = c.currentTime;
+    const fresh = Math.min(N, Math.round((ct - e.lastCtx) * sr)); e.lastCtx = ct; if (fresh <= 0) return; e.an.getFloatTimeDomainData(e.buf);
+    let on = -1, pk = 0, sum = 0; const thr = Math.max(0.03, e.floor * 9);
+    for (let i = N - fresh; i < N; i++) { const a = Math.abs(e.buf[i]); sum += a * a; if (a > pk) pk = a; if (on < 0 && a > thr) on = i; }
+    e.level = Math.max(pk, e.level * 0.92); e.events = e.events.filter((v) => now - v.t < 3000);
+    if (on < 0) { e.floor = lerp(e.floor, Math.sqrt(sum / fresh), 0.04); return; }
+    if (now < e.cool) return; e.cool = now + 300;
+    const age = (N - on) / sr; let t = now - age * 1000;
+    try { const ts = c.getOutputTimestamp(); if (ts && ts.performanceTime > 0) t = ts.performanceTime + (ct - age - ts.contextTime) * 1000; } catch {}
+    e.events.push({ t: t - 12, peak: pk, used: false });
+  };
+  return e;
+})();
+const realThrows = [], _gp = V(), _gq = V(), _gv = V(), envHit3 = { point: V(), normal: V(), kind: '', t: 0 };
+class Ghost extends Tracked {
+  constructor() { super('real', BALLS[prefs.ball][1] / 2); this.acoustic = true; this.confirmed = true; this.t0 = 0; this.o = V(); this.v0 = V(); this.L = 0; this.Texp = 0.6; this.hitP = V(); this.hitN = V(); this.hitKind = ''; this.end = 0; this.ring = addSprite(TEX.glow, 0xffffff, 9); this.grp.add(this.ring); }
+}
+function startAcousticThrow(st) {
+  const v = st.peakVel.length(); if (v < 4) return; while (realThrows.length > 2) realThrows.shift().dispose();
+  const g = new Ghost(); g.t0 = st.peakT; g.o.copy(st.peakPos); g.v0.copy(st.peakVel);
+  _gv.copy(g.v0).setLength(Math.max(v, 9)); _gp.copy(g.o); let L = 0, hit = null; const h = 1 / 120;
+  for (let i = 0; i < 480; i++) { _gq.copy(_gp); _gv.y -= G * h; _gp.addScaledVector(_gv, h); const c = sweepEnv(_gq, _gp, 0.02, envHit3); if (c) { L += _gq.distanceTo(c.point); hit = c; break; } L += _gq.distanceTo(_gp); }
+  if (hit) { g.L = L; g.hitP.copy(hit.point); g.hitN.copy(hit.normal); g.hitKind = hit.kind; g.Texp = L / v; }
+  g.pos.copy(g.o); g.vel.copy(g.v0); realThrows.push(g); stats.throws++; sfx.throwS(g.o, clamp(v * KMH / 80, 0, 1));
+}
+function finishGhost(g, v, heard) {
+  g.end = performance.now() + 300; g.speed = v; const k = v * KMH; if (k > stats.max) { stats.max = k; store.set('max', k); }
+  if (heard) { g.pos.copy(g.hitP); impact(g.hitP, g.hitN, v, g.hitKind || 'superfície', g); }
+  else fx.pop(g.pos, g.L ? 'ARREMESSO · SEM SOM DE BATIDA' : 'ARREMESSO REAL · MÃO', f1(k) + ' km/h', speedCss(k));
+}
+function updateAcoustic(now) {
+  if (ear.on) ear.poll(now);
+  for (const g of [...realThrows]) {
+    if (g.end) { if (now > g.end) { realThrows.splice(realThrows.indexOf(g), 1); g.dispose(); } continue; }
+    const el = (now - g.t0) / 1000, tt = g.L ? Math.min(el, g.Texp) : Math.min(el, 1.2);
+    g.pos.copy(g.o).addScaledVector(g.v0, tt); g.pos.y -= 0.5 * G * tt * tt; if (g.pos.y < g.r) g.pos.y = g.r; g.vel.copy(g.v0); g.vel.y -= G * tt;
+    g.ring.position.copy(g.pos); g.ring.scale.setScalar(Math.max(g.r * 6, g.pos.distanceTo(head.p) * 0.04)); g.ring.material.color.copy(g.color);
+    const ev = ear.events.find((x) => !x.used && x.t > g.t0 + 35 && x.t < g.t0 + 2500);
+    if (ev && g.L) { const vm = g.L / Math.max(0.02, (ev.t - g.t0) / 1000), r = vm / Math.max(0.1, g.v0.length()); if (r > 0.4 && r < 2.5) { ev.used = true; finishGhost(g, vm, true); continue; } }
+    if (el > Math.max(1.5, g.Texp * 3)) finishGhost(g, g.v0.length(), false);
+  }
+}
+
 // ---------- beeps (pi pi pi) driven by the most relevant object
 let nextBeep = 0, altTone = false;
 function updateAlerts(now, list) {
   let prim = null, best = -1;
   for (const o of list) { const vis = o.kind === 'real' ? o.confirmed : (o.state === 'free' && o.speed > 0.9); if (!vis) continue; const sc = o.threat * 3 + Math.min(o.speed / 20, 1); if (sc > best) { best = sc; prim = o; } }
-  for (const o of list) sfx.whoosh(o, o.kind === 'real' ? o.confirmed && o.speed > 3 : o.state === 'free' && o.speed > 3.5, o.closing);
+  for (const o of list) sfx.whoosh(o, o.acoustic ? false : o.kind === 'real' ? o.confirmed && o.speed > 3 : o.state === 'free' && o.speed > 3.5, o.closing);
   if (prim && prim.speed > 1.4 && now >= nextBeep) {
     const kmh = prim.speed * KMH, tImp = Math.min(prim.tti, prim.pred.t);
     const interval = prim.threat > 0 ? lerp(0.3, 0.05, prim.threat) : clamp(0.06 + Math.min(tImp, 2) * 0.17, 0.06, 0.4);
@@ -1085,9 +1183,9 @@ function loop(time, frame) {
   if (xr && frame && mode === 'xr-ar') updateXRWorld(frame);
   updateInputs(dt, now, frame);
   if (!xr) demo(now);
-  updateReal(now, dt);
+  updateReal(now, dt); updateAcoustic(now);
   for (const b of [...balls]) stepBall(b, dt, now);
-  const list = balls.filter((b) => b.alive); if (realObj) list.push(realObj);
+  const list = balls.filter((b) => b.alive); if (realObj) list.push(realObj); for (const g of realThrows) list.push(g);
   for (const o of list) { analyze(o); if (frameNo % 2 === 0 || o.speed > 6) predict(o); updateOverlay(o, dt, now); }
   const prim = updateAlerts(now, list);
   holoU.uTime.value = now / 1000; holoU.uScan.value = (now - scanStart) / 1000;
@@ -1108,7 +1206,7 @@ function applyFrameRate() {
 }
 async function enterXR() {
   sfx.init(); const xrMode = sys.ar ? 'immersive-ar' : 'immersive-vr'; const Q = QUAL[prefs.q];
-  const base = ['hand-tracking', 'layers', 'hit-test', 'anchors', 'plane-detection', 'mesh-detection', 'bounded-floor'];
+  const base = ['hand-tracking', 'layers', 'hit-test', 'anchors', 'plane-detection', 'mesh-detection', 'bounded-floor', 'camera-access'];
   let s = null;
   try { s = await navigator.xr.requestSession(xrMode, { requiredFeatures: ['local-floor'], optionalFeatures: [...base, 'depth-sensing'], depthSensing: { usagePreference: ['gpu-optimized'], dataFormatPreference: [] } }); }
   catch (e1) { try { s = await navigator.xr.requestSession(xrMode, { requiredFeatures: ['local-floor'], optionalFeatures: base }); } catch (e2) { showNote('O Quest recusou a sessão imersiva: ' + (e2.message || e2.name) + '. Recarregue a página e tente de novo.'); return; } }
@@ -1116,7 +1214,7 @@ async function enterXR() {
   sys.layers = feats.includes('layers') || s.renderState.layers !== undefined;
   if (feats.includes('depth-sensing') && s.renderState.layers === undefined) { try { Object.defineProperty(s, 'enabledFeatures', { value: feats.filter((f) => f !== 'depth-sensing'), configurable: true }); } catch {} }
   const has = (f) => (s.enabledFeatures ? s.enabledFeatures.includes(f) : false);
-  Object.assign(sys, { hands: has('hand-tracking'), planes: has('plane-detection'), meshes: has('mesh-detection'), depth: has('depth-sensing'), anchors: has('anchors'), hit: has('hit-test') });
+  Object.assign(sys, { camXR: has('camera-access'), hands: has('hand-tracking'), planes: has('plane-detection'), meshes: has('mesh-detection'), depth: has('depth-sensing'), anchors: has('anchors'), hit: has('hit-test') });
   renderer.xr.setFramebufferScaleFactor(Q.scale); renderer.xr.setFoveation(Q.fov);
   session = s; mode = sys.ar ? 'xr-ar' : 'xr-vr';
   s.addEventListener('end', onSessionEnd);
@@ -1126,7 +1224,7 @@ async function enterXR() {
   while (balls.length) removeBall(balls[0]);
   applyFrameRate(); drawPill(); $('#feed2d').hidden = true;
   setTimeout(() => { holoU.uOrigin.value.copy(head.p); scanStart = performance.now(); openMenu(true); }, 400);
-  say('SENTINELA ATIVO', sensor.on ? 'câmeras ligadas · arremesse uma bola' : 'pegue uma bola com a mão e arremesse', CSS.cyan, 5000);
+  say('SENTINELA ATIVO', sensor.on ? 'câmeras ligadas · arremesse uma bola' : ear.on ? 'microfone ligado · arremesse uma bola real' : 'pegue uma bola com a mão e arremesse', CSS.cyan, 5000);
   const h = store.get('anchor', null);
   if (h && s.restorePersistentAnchor) setTimeout(() => { s.restorePersistentAnchor(h).then((a) => { target.setAnchor(a); target.active = true; }).catch(() => store.set('anchor', null)); }, 1500);
   if (mode === 'xr-ar') setTimeout(() => { if (session === s && xrPlanes.size === 0 && xrMeshes.size === 0) say('SALA SEM MAPA', 'menu → escanear sala, para as bolas baterem nas paredes', CSS.amber, 7000); }, 5000);
@@ -1139,12 +1237,12 @@ function onSessionEnd() {
 }
 
 // ---------- landing UI
-const chipsDef = [['ar', 'Realidade mista'], ['hands', 'Mãos'], ['ctrl', 'Controles + vibração'], ['planes', 'Paredes e móveis'], ['meshes', 'Malha da sala'], ['depth', 'Profundidade'], ['anchors', 'Âncoras fixas'], ['camera', 'Câmeras do headset'], ['audio', 'Áudio espacial 3D'], ['hz', '90 / 120 Hz']];
+const chipsDef = [['ar', 'Realidade mista'], ['hands', 'Mãos'], ['ctrl', 'Controles + vibração'], ['planes', 'Paredes e móveis'], ['meshes', 'Malha da sala'], ['depth', 'Profundidade'], ['anchors', 'Âncoras fixas'], ['camera', 'Câmeras do headset'], ['mic', 'Microfone'], ['audio', 'Áudio espacial 3D'], ['hz', '90 / 120 Hz']];
 function renderChips() {
   const ul = $('#chips'); const known = !!sys.everEntered;
   ul.innerHTML = chipsDef.map(([k, n]) => {
     let st = 'wait';
-    if (k === 'ar') st = sys.ar ? 'on' : sys.vr ? 'wait' : 'off'; else if (k === 'audio') st = 'on'; else if (k === 'camera') st = sensor.on ? 'on' : sensor.failed ? 'off' : 'wait';
+    if (k === 'ar') st = sys.ar ? 'on' : sys.vr ? 'wait' : 'off'; else if (k === 'audio') st = 'on'; else if (k === 'camera') st = sensor.on ? 'on' : sensor.failed ? 'off' : 'wait'; else if (k === 'mic') st = ear.on ? 'on' : ear.failed ? 'off' : 'wait';
     else if (k === 'ctrl') st = sys.ar || sys.vr ? 'on' : 'wait'; else if (k === 'hz') st = sys.hz ? 'on' : 'wait'; else if (known) st = sys[k] ? 'on' : 'off';
     return `<li class="chip" data-s="${st}"><i></i>${n}</li>`;
   }).join('');
@@ -1164,24 +1262,55 @@ function syncSelects() { $('#selBall').value = prefs.ball; $('#selColor').value 
   $('#bMin').addEventListener('click', () => { const p = $('#panel'), c = p.classList.toggle('collapsed'); $('#bMin').textContent = c ? '+' : '–'; $('#bMin').setAttribute('aria-expanded', String(!c)); });
   $('#bCam').addEventListener('click', async () => {
     sfx.init(); const b = $('#bCam');
-    if (sensor.on) { sensor.stop(); b.textContent = 'Ativar câmeras · objetos reais'; b.classList.remove('on'); $('#feed2d').hidden = true; return; }
+    if (sensor.on) { sensor.stop(); b.textContent = 'Ativar câmeras'; b.classList.remove('on'); $('#feed2d').hidden = true; return; }
     b.textContent = 'Pedindo permissão…';
     try { await sensor.start(); b.textContent = 'Câmeras ativas ✓'; b.classList.add('on'); $('#feed2d').hidden = false; showNote(''); }
-    catch (e) { sensor.failed = true; b.textContent = 'Câmeras indisponíveis'; showNote('Câmeras: ' + sensor.why(e) + '. O modo de bolas virtuais e o medidor de mãos funcionam normalmente.'); renderChips(); }
+    catch (e) { sensor.failed = true; sensor.err = e; b.textContent = 'Tentar câmeras de novo'; showNote('Câmeras: ' + esc(sensor.why(e)) + '. O microfone, as bolas virtuais e o medidor de mãos funcionam sem câmera.'); renderChips(); }
+    updateDiag();
+  });
+  $('#bMic').addEventListener('click', async () => {
+    const b = $('#bMic');
+    if (ear.on) { ear.stop(); b.textContent = 'Ativar microfone'; b.classList.remove('on'); return; }
+    b.textContent = 'Pedindo permissão…';
+    try { await ear.start(); b.textContent = 'Microfone ativo ✓'; b.classList.add('on'); showNote(''); }
+    catch (e) { ear.failed = true; ear.err = e; b.textContent = 'Tentar microfone de novo'; showNote('Microfone: ' + esc(whyMedia(e, 'microfone')) + '.'); }
+    renderChips(); updateDiag();
+  });
+  $('#selCam').addEventListener('change', async (e) => {
+    sensor.deviceId = e.target.value; store.set('camId', sensor.deviceId);
+    if (sensor.on) { try { await sensor.start(sensor.deviceId); } catch (err) { sensor.err = err; showNote('Câmeras: ' + esc(sensor.why(err)) + '.'); } updateDiag(); }
   });
   $('#bEnter').addEventListener('click', () => { if (!sys.ar && !sys.vr) { showNote(sys.blocked ? blockedMsg() : 'Abra esta página no navegador do Meta Quest 3S para entrar na realidade mista. Aqui você vê a prévia ao vivo: toque na cena para arremessar.'); return; } sys.everEntered = true; enterXR(); });
 })();
-function blockedMsg() { return 'Esta janela bloqueia o modo imersivo. No Quest, abra o link direto do app' + (DIRECT_URL ? `: <b>${DIRECT_URL}</b>` : '.'); }
+function fillCamSelect() {
+  const sel = $('#selCam'), cur = sensor.deviceId;
+  sel.innerHTML = '<option value="">Automática (traseira do headset)</option>' + sensor.devices.map((d, i) => `<option value="${esc(d.deviceId)}">${esc(d.label || 'Câmera ' + (i + 1))}</option>`).join('');
+  sel.value = cur && sensor.devices.some((d) => d.deviceId === cur) ? cur : '';
+}
+async function updateDiag() {
+  const el = $('#diag'); if (!el) return; const md = navigator.mediaDevices; let cams = '?', perm = '?', mperm = '?';
+  try { if (md && md.enumerateDevices) cams = (await md.enumerateDevices()).filter((d) => d.kind === 'videoinput').length; } catch {}
+  try { perm = (await navigator.permissions.query({ name: 'camera' })).state; } catch {}
+  try { mperm = (await navigator.permissions.query({ name: 'microphone' })).state; } catch {}
+  const ok = (v) => (v ? '<b class="good">ok</b>' : '<b class="bad">não</b>'), pt = (x) => ({ granted: 'liberada', denied: 'negada', prompt: 'vai perguntar' })[x] || x;
+  let h = `Diagnóstico · HTTPS ${ok(window.isSecureContext)} · fora do Claude ${ok(!inFrame)} · API de câmera ${ok(md && md.getUserMedia)} · câmeras vistas <b>${cams}</b> · permissão câmera <b>${pt(perm)}</b> · microfone <b>${pt(mperm)}</b>`;
+  if (sensor.on) h += ` · usando <b>${esc(sensor.devLabel)}</b>`;
+  if (sensor.err) h += ` · <span class="bad">câmera: ${esc(sensor.why(sensor.err))}</span>`;
+  if (ear.err) h += ` · <span class="bad">microfone: ${esc(whyMedia(ear.err, 'microfone'))}</span>`;
+  el.innerHTML = h;
+}
+function blockedMsg() { return 'A página do Claude bloqueia câmera, microfone e modo imersivo. Toque em <b>Abrir link direto</b> ou digite no navegador do Quest: <b>' + esc(DIRECT_URL) + '</b>'; }
 async function probe() {
   const xr = navigator.xr; let blocked = false;
   try { const pp = document.permissionsPolicy || document.featurePolicy; if (pp && pp.allowsFeature && !pp.allowsFeature('xr-spatial-tracking')) blocked = true; } catch {}
   if (xr && !blocked) { try { sys.ar = await xr.isSessionSupported('immersive-ar'); } catch { blocked = true; } try { sys.vr = await xr.isSessionSupported('immersive-vr'); } catch { blocked = true; } }
   sys.blocked = blocked; const be = $('#bEnter');
   if (sys.ar) be.textContent = 'Entrar na realidade mista'; else if (sys.vr) be.textContent = 'Entrar em VR';
-  else { be.textContent = 'Entrar na realidade mista'; showNote(blocked && xr ? blockedMsg() : /OculusBrowser|Quest/i.test(navigator.userAgent) ? 'O navegador não liberou o WebXR nesta página.' : 'Prévia ao vivo. Para o modo imersivo, abra esta página no navegador do Meta Quest 3S.'); }
+  else { be.textContent = 'Entrar na realidade mista'; showNote(inFrame || (blocked && xr) ? blockedMsg() : /OculusBrowser|Quest/i.test(navigator.userAgent) ? 'O navegador não liberou o WebXR nesta página.' : 'Prévia ao vivo. Para o modo imersivo, abra esta página no navegador do Meta Quest 3S.'); }
   renderChips();
 }
-layoutHUD(); renderChips(); probe();
+layoutHUD(); renderChips(); probe(); updateDiag();
+if (inFrame && DIRECT_URL) { const a = $('#aDirect'); a.href = DIRECT_URL; a.hidden = false; showNote(blockedMsg()); }
 if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('800 40px "Saira Condensed"'), document.fonts.load('600 20px "Chakra Petch"'), document.fonts.load('700 20px "Chakra Petch"')]).then(() => { banner.sig = card.sig = ''; drawPill(); }).catch(() => {});
 drawPill();
 </script>
