@@ -307,7 +307,8 @@ const R_BODY = 0.088, BODY_Y = 0.012, CROWN_Y = 0.105, R_CROWN = 0.062, DRAG = 0
 const pet = new THREE.Group(); pet.visible = false; scene.add(pet);
 const model = new THREE.Group(); model.rotation.x = -Math.PI / 2; model.scale.setScalar(0.001); model.position.y = 0.0412; pet.add(model);
 const parts = { props: [], discs: [], feathers: [], ledMat: null, difMat: null, halo: null };
-const P = { pos: V(0.15, 1.2, -0.75), vel: V(), q: new THREE.Quaternion(), w: V(), phase: 'hover', t: 0, rpm: 0.6, rpmT: 0.6, band: null, bandP: V(0.2, 1.05, -0.45), target: V(), hitT: 0, retMax: 0, lastWall: 0, headCd: 0, held: null, flash: 0, arrFlash: 0, arrCol: COL.ok.clone(), led: COL.accent.clone(), beepPulse: 0, ready: false, everHit: false, needPlace: false };
+const P = { pos: V(0.15, 1.2, -0.75), vel: V(), q: new THREE.Quaternion(), w: V(), phase: 'hover', t: 0, rpm: 0.6, rpmT: 0.6, band: null, bandP: V(0.2, 1.05, -0.45), target: V(), hitT: 0, retMax: 0, lastWall: 0, headCd: 0, held: null, flash: 0, arrFlash: 0, arrCol: COL.ok.clone(), led: COL.accent.clone(), beepPulse: 0, ready: false, everHit: false, needPlace: false, roll: 0 };
+const B = { palm: V(0.2, 1.05, -0.5), palmN: V(0, 1, 0), wrist: V(0.2, 1.0, -0.45), ok: false };
 const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: TEX.shadow, transparent: true, depthWrite: false, toneMapped: false })); shadow.renderOrder = 1; scene.add(shadow);
 function setupModel(root) {
   model.add(root); const by = {}; root.traverse((o) => { if (o.isMesh) by[o.name] = o; });
@@ -402,16 +403,20 @@ function collideHead(now) {
   P.vel.addScaledVector(_n, -1.4 * vn); P.pos.copy(head.p).addScaledVector(_n, R_BODY + 0.112); P.headCd = now + 400; if (P.phase !== 'free') setPhase('free');
 }
 // drone flight controller toward P.target (brake curve + tilt into acceleration + VL53L1X altitude floor)
-function fly(dt, vmax, amax, brk, now) {
+function fly(dt, vmax, amax, brk, now, noseTo, roll) {
   _tmp.subVectors(P.target, P.pos); const d = _tmp.length(); if (d > 1e-4) _tmp.divideScalar(d);
   const vd = Math.min(vmax, Math.sqrt(2 * brk * Math.max(0, d - 0.03)) + 0.04);
   _a.copy(_tmp).multiplyScalar(vd).sub(P.vel).multiplyScalar(4.2); if (_a.length() > amax) _a.setLength(amax);
   const alt = P.pos.y - floorY; if (alt < 0.32) _a.y += (0.32 - alt) * 30;
   P.vel.addScaledVector(_a, dt); _prev.copy(P.pos); P.pos.addScaledVector(P.vel, dt); collideRoom(_prev, now);
-  uprightQ(_q); _b.set(_a.x, 0, _a.z); const am = _b.length();
-  if (am > 0.01) { _n.crossVectors(UP, _b).normalize(); _q2.setFromAxisAngle(_n, Math.min(0.5, Math.atan(am / G))); _q.premultiply(_q2); }
-  P.q.slerp(_q, 1 - Math.exp(-dt * 9)); P.rpmT = clamp(0.62 + 0.32 * _a.length() / amax, 0.55, 1);
+  P.rpmT = clamp(0.62 + 0.32 * _a.length() / amax, 0.55, 1);
+  noseToward(noseTo, dt, roll, 8);
   return d;
+}
+// orient the base (nose, local -Y) toward a point; spin slowly around the peteca's own axis
+function noseToward(pt, dt, roll, k) {
+  _b.subVectors(pt, P.pos); if (_b.lengthSq() < 1e-6) return; _b.normalize(); P.roll += roll * dt;
+  _q.setFromUnitVectors(DOWN, _b); _q2.setFromAxisAngle(UP, P.roll); _q.multiply(_q2); P.q.slerp(_q, 1 - Math.exp(-dt * k));
 }
 let nextBeep = 0;
 function stepPeteca(dt, now) {
@@ -426,12 +431,13 @@ function stepPeteca(dt, now) {
   } else if (P.phase === 'recover') {
     P.vel.multiplyScalar(Math.exp(-dt * 3.2)); P.vel.y -= G * 0.25 * dt * (1 - sstep(0, 0.3, P.t)); _prev.copy(P.pos); P.pos.addScaledVector(P.vel, dt); collideRoom(_prev, now);
     if (P.pos.y - floorY < 0.32) P.vel.y += (0.32 - (P.pos.y - floorY)) * 25 * dt;
-    integrateSpin(dt); P.w.multiplyScalar(Math.exp(-dt * 7)); uprightQ(_q); P.q.slerp(_q, 1 - Math.exp(-dt * 7)); P.rpmT = 0.95;
+    integrateSpin(dt); P.w.multiplyScalar(Math.exp(-dt * 7)); noseToward(B.palm, dt, 4, 6); P.rpmT = 0.95;
     if (P.t > 0.5) setPhase('return');
   } else if (P.phase === 'return') {
-    const r = RET[prefs.ret], d = fly(dt, r.vmax, r.amax, r.brk, now); integrateSpin(dt); P.w.multiplyScalar(Math.exp(-dt * 8)); P.retMax = Math.max(P.retMax, P.vel.length());
-    if (d < 0.1 || touchingBand()) arrive(now);
-  } else { P.target.y += Math.sin(now * 0.0021) * 0.012; fly(dt, 1.1, 3.5, 1.6, now); integrateSpin(dt); P.w.multiplyScalar(Math.exp(-dt * 8)); }
+    _tmp.subVectors(B.palm, P.pos); const dist = _tmp.length(); P.target.copy(B.palm).addScaledVector(_tmp.divideScalar(Math.max(dist, 1e-4)), -0.085);
+    const r = RET[prefs.ret]; fly(dt, r.vmax, r.amax, r.brk, now, B.palm, 7); integrateSpin(dt); P.w.multiplyScalar(Math.exp(-dt * 8)); P.retMax = Math.max(P.retMax, P.vel.length());
+    _j2.set(0, -0.074, 0).applyQuaternion(P.q).add(P.pos); if (_j2.distanceTo(B.palm) < 0.045 || dist < 0.12) arrive(now);
+  } else { P.target.y += Math.sin(now * 0.0021) * 0.012; fly(dt, 1.1, 3.5, 1.6, now, B.palm, 1.2); integrateSpin(dt); P.w.multiplyScalar(Math.exp(-dt * 8)); }
   if (mode !== 'preview' && P.phase !== 'held') collideHead(now);
   P.rpm = lerp(P.rpm, P.rpmT, damp(dt, P.rpmT > P.rpm ? 7 : 2.5)); pet.position.copy(P.pos); pet.quaternion.copy(P.q);
 }
@@ -439,8 +445,8 @@ function arrive(now) {
   _tmp.subVectors(P.target, P.pos).normalize(); const kmh = Math.max(P.vel.length(), 0) * KMH, tRet = (now - P.hitT) / 1000;
   const rate = kmh <= 3.5 ? ['SUAVE', CSS.ok, COL.ok] : kmh <= 7 ? ['FIRME', CSS.warn, COL.warn] : ['RÁPIDA DEMAIS', CSS.hot, COL.hot];
   stats.arr = kmh; stats.arrTag = rate[0].toLowerCase(); stats.arrCol = rate[1]; stats.returns++; stats.rally++; if (stats.rally > stats.best) { stats.best = stats.rally; store.set('best', stats.best); }
-  sfx.catchS(P.pos, clamp(kmh / 10, 0.15, 1)); fx.shock(P.bandP, UP, 0.12, rate[2]); fx.pop(P.pos, 'CHEGOU · ' + rate[0], f1(kmh), rate[1], `km/h · ${f1(tRet)} s`);
-  if (P.band) pulse(P.band, kmh > 7 ? 0.9 : 0.45, kmh > 7 ? 90 : 50); P.arrFlash = 1; P.arrCol.copy(rate[2]); setPhase('hover');
+  sfx.catchS(B.palm, clamp(kmh / 10, 0.15, 1)); fx.shock(B.palm, B.palmN, 0.12, rate[2]); fx.pop(B.palm, 'CHEGOU · ' + rate[0], f1(kmh), rate[1], `km/h · ${f1(tRet)} s`);
+  if (P.band) pulse(P.band, kmh > 7 ? 0.9 : 0.45, kmh > 7 ? 90 : 50); P.arrFlash = 1; P.arrCol.copy(rate[2]); P.vel.copy(B.palmN).multiplyScalar(0.5).addScaledVector(UP, 0.35); setPhase('hover');
 }
 function touchingBand() { const st = P.band; if (!st || !st.havePos) return false; return center(BODY_Y, _b).distanceTo(st.palm) < R_BODY + 0.07; }
 
@@ -549,7 +555,7 @@ function strike(st, a, b, rs, now) {
     if (t < 0) continue;
     _cp.copy(a).addScaledVector(_v, t); _n.subVectors(c, _cp); if (_n.lengthSq() < 1e-8) _n.copy(vh).normalize(); else _n.normalize();
     _tmp.subVectors(P.vel, vh); const vn = _tmp.dot(_n);
-    if (-vn > 0.6) { const vNew = _c2.copy(P.vel).addScaledVector(_n, -1.55 * vn); _j1.copy(vh).addScaledVector(_n, -vh.dot(_n)); vNew.addScaledVector(_j1, 0.25); applyHit(vNew, _j2.copy(_cp).addScaledVector(_n, rs), st, 'tapa'); st.hitCd = now + 300; return true; }
+    if (-vn > 0.6 && vh.dot(_n) > 0.6) { const vNew = _c2.copy(P.vel).addScaledVector(_n, -1.55 * vn); _j1.copy(vh).addScaledVector(_n, -vh.dot(_n)); vNew.addScaledVector(_j1, 0.25); applyHit(vNew, _j2.copy(_cp).addScaledVector(_n, rs), st, 'tapa'); st.hitCd = now + 300; return true; }
     if (vn < 0 && (st !== P.band || P.phase === 'free')) { P.vel.addScaledVector(_n, -1.2 * vn); const pen = rr - c.distanceTo(b); if (pen > 0) P.pos.addScaledVector(_n, pen * 0.5); }
   }
   return false;
@@ -580,10 +586,10 @@ function pickBand() { let best = null; for (const st of inputs) if (st.active &&
 function dockPoint(st, out) { return st.isHand ? out.copy(st.palm).addScaledVector(UP, 0.16).addScaledVector(st.palmN, 0.04) : out.copy(st.palm).addScaledVector(UP, 0.18); }
 const demo = { base: V(0.22, 1.02, -0.2), pos: V(), swing: 0, hitDone: false, next: 2200, idleUntil: 0 };
 function updateTarget(now) {
-  if (mode === 'preview') { P.target.copy(demo.pos).addScaledVector(UP, 0.15).add(_j1.set(0, 0, -0.03)); P.bandP.copy(demo.pos); return; }
+  if (mode === 'preview') { B.palm.copy(demo.pos).add(_j1.set(0, 0.03, -0.05)); B.palmN.set(0, 1, 0); B.wrist.copy(demo.pos); B.ok = true; P.target.copy(B.palm).addScaledVector(UP, 0.16); P.bandP.copy(demo.pos); return; }
   let st = P.band && P.band.active && P.band.havePos ? P.band : pickBand(); if (st && !P.band) P.band = st;
-  if (st) { dockPoint(st, P.target); P.bandP.copy(st.wrist); band.visible = true; band.position.copy(st.wrist); band.quaternion.copy(st.wristQ); if (st.isHand) band.position.addScaledVector(_j1.set(0, 0, 1).applyQuaternion(st.wristQ), 0.015); else band.position.addScaledVector(_j1.set(0, 0, 1).applyQuaternion(st.wristQ), 0.07); }
-  else { band.visible = false; P.target.copy(head.p).addScaledVector(head.flat, 0.55).addScaledVector(UP, -0.3); P.bandP.copy(P.target).addScaledVector(UP, -0.12); }
+  if (st) { B.palm.copy(st.palm); B.palmN.copy(st.palmN); B.wrist.copy(st.wrist); B.ok = true; dockPoint(st, P.target); P.bandP.copy(st.wrist); band.visible = true; band.position.copy(st.wrist); band.quaternion.copy(st.wristQ); if (st.isHand) band.position.addScaledVector(_j1.set(0, 0, 1).applyQuaternion(st.wristQ), 0.015); else band.position.addScaledVector(_j1.set(0, 0, 1).applyQuaternion(st.wristQ), 0.07); }
+  else { band.visible = false; B.ok = false; B.palm.copy(head.p).addScaledVector(head.flat, 0.5).addScaledVector(UP, -0.42); B.palmN.set(0, 1, 0); B.wrist.copy(B.palm); P.target.copy(B.palm).addScaledVector(UP, 0.16); P.bandP.copy(B.palm); }
 }
 
 // ---------- wrist panel (look at your left palm, or press X)
