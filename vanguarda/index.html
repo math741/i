@@ -188,7 +188,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
   <div id="score"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
@@ -948,40 +948,78 @@ function updateRemote(dt) {
   a.tag.position.copy(oth.head).add(V(0, 0.45, 0)); if (a.tagKey !== `${oth.name}${oth.plat}${Math.round(oth.hp / 5)}`) { a.tagKey = `${oth.name}${oth.plat}${Math.round(oth.hp / 5)}`; drawTag(a, oth.name || 'Aliado', oth.plat, oth.hp); }
 }
 
-// ================= networking (PeerJS P2P, or BroadcastChannel with ?local)
+// ================= networking: relay through a public MQTT broker over WSS (works behind any home router). ?local uses BroadcastChannel for tests.
+const QS = new URLSearchParams(location.search);
+const BROKERS = QS.get('broker') ? [QS.get('broker')] : ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+const TOPIC = 'vanguarda-jogo-v1', IMPORTANT = new Set(['hi', 'go', 'end', 'ev', 'dead', 'resp', 'lobby', 'quit', 'dE', 'dP', 'pk', 'drop', 'bye']);
 const net = {
-  role: 'solo', peer: null, conn: null, bc: null, open: false, code: '', lastP: 0, lastE: 0, lastM: 0,
-  send(m) { if (!this.open) return; try { if (this.conn) this.conn.send(m); else if (this.bc) this.bc.postMessage(m); } catch {} },
+  role: 'solo', client: null, bc: null, linked: false, open: false, code: '', sid: Math.random().toString(36).slice(2, 10), peerSid: '', q: [], lastP: 0, lastE: 0, lastM: 0, lastPing: 0, lastHi: 0, joinAt: 0,
+  send(m) { if (this.linked) this.q.push(m); },
+  flush() {
+    if (!this.linked || !this.q.length) return; const batch = this.q.splice(0, this.q.length), body = { s: this.sid, m: batch };
+    try { if (this.client) this.client.publish(`${TOPIC}/${this.code}/${me.id}`, JSON.stringify(body), { qos: batch.some((x) => IMPORTANT.has(x.t)) ? 1 : 0 }); else if (this.bc) this.bc.postMessage(body); } catch {}
+  },
 };
 const CODE_CH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const genCode = () => Array.from({ length: 5 }, () => CODE_CH[(Math.random() * CODE_CH.length) | 0]).join('');
-function netReset() { try { if (net.conn) net.conn.close(); } catch {} try { if (net.peer) net.peer.destroy(); } catch {} try { if (net.bc) net.bc.close(); } catch {} Object.assign(net, { role: 'solo', peer: null, conn: null, bc: null, open: false, code: '' }); oth.on = false; oth.tgt = null; }
+const brokerOf = (code) => (BROKERS.length === 1 ? 0 : CODE_CH.indexOf(code[0]) % BROKERS.length);
+function netReset() {
+  try { if (net.open) { net.q.push({ t: 'bye' }); net.flush(); } } catch {}
+  const c = net.client; if (c) setTimeout(() => { try { c.end(true); } catch {} }, 300); try { if (net.bc) net.bc.close(); } catch {}
+  Object.assign(net, { role: 'solo', client: null, bc: null, linked: false, open: false, code: '', peerSid: '', q: [] }); oth.on = false; oth.tgt = null;
+}
 function hello() { net.send({ t: 'hi', n: cfg.name, pl: QUEST ? 'vr' : 'pc' }); }
-function hostRoom() {
-  netReset(); net.role = 'host'; me.id = 'A'; oth.id = 'B'; net.code = genCode(); showLobby(); lobbyNote('Abrindo a sala…');
-  if (LOCAL) { net.bc = new BroadcastChannel('vgd-' + net.code); net.bc.onmessage = (e) => onMsg(e.data); net.open = true; lobbyNote(''); renderLobby(); return; }
-  if (!window.Peer) { lobbyNote('Não consegui carregar a parte online. Use “Jogar sozinho” ou confira a internet.'); return; }
-  const peer = net.peer = new window.Peer('vgd-' + net.code.toLowerCase(), { debug: 1 });
-  peer.on('open', () => { lobbyNote(''); renderLobby(); });
-  peer.on('connection', (c) => { if (net.conn) { c.close(); return; } attachConn(c); });
-  peer.on('error', (e) => { if (e.type === 'unavailable-id') { hostRoom(); return; } lobbyNote('Erro na sala online: ' + (e.type || e.message) + '. Tente criar de novo.'); });
+function mqttTry(url) {
+  return new Promise((res, rej) => {
+    let c; try { c = window.mqtt.connect(url, { clientId: 'vgd_' + net.sid + '_' + ((Math.random() * 1e4) | 0), clean: true, connectTimeout: 6000, reconnectPeriod: 0, keepalive: 30 }); } catch (e) { rej(e); return; }
+    const to = setTimeout(() => { try { c.end(true); } catch {} rej(new Error('timeout')); }, 7000);
+    c.once('connect', () => { clearTimeout(to); res(c); }); c.once('error', (e) => { clearTimeout(to); try { c.end(true); } catch {} rej(e); });
+  });
 }
-function joinRoom(code) {
+async function linkBroker(order) { for (const i of order) { try { return [await mqttTry(BROKERS[i]), i]; } catch {} } return [null, -1]; }
+const dec = new TextDecoder();
+function attachLink(c) {
+  net.client = c; net.linked = true; c.options.reconnectPeriod = 2000; const sub = () => c.subscribe(`${TOPIC}/${net.code}/${oth.id}`, { qos: 1 }); sub();
+  c.on('message', (topic, payload) => { let b; try { b = JSON.parse(dec.decode(payload)); } catch { return; } onBatch(b); });
+  c.on('reconnect', () => { if (!game.running) lobbyNote('Reconectando ao servidor da sala…'); }); c.on('connect', () => { if (!game.running && net.open) lobbyNote(''); sub(); });
+}
+function onBatch(b) {
+  if (!b || !Array.isArray(b.m) || b.s === net.sid) return;
+  if (!net.peerSid) { if (!b.m.some((x) => x.t === 'hi')) return; net.peerSid = b.s; }
+  else if (b.s !== net.peerSid) return;
+  oth.lastSeen = now(); for (const m of b.m) onMsg(m);
+}
+async function hostRoom() {
+  netReset(); net.role = 'host'; me.id = 'A'; oth.id = 'B'; showLobby(); lobbyNote('Abrindo a sala…');
+  if (LOCAL) { net.code = genCode(); net.bc = new BroadcastChannel('vgd-' + net.code); net.bc.onmessage = (e) => onBatch(e.data); net.linked = true; lobbyNote(''); renderLobby(); return; }
+  if (!window.mqtt) { lobbyNote('Não consegui carregar a parte online. Confira a internet e recarregue a página.'); return; }
+  const [c, k] = await linkBroker(BROKERS.map((_, i) => i)); if (net.role !== 'host' || net.client) { if (c) c.end(true); return; }
+  if (!c) { lobbyNote('Não consegui falar com o servidor das salas. Confira a internet e tente de novo.'); return; }
+  do { net.code = genCode(); } while (brokerOf(net.code) !== k); attachLink(c); lobbyNote(''); renderLobby();
+}
+async function joinRoom(code) {
   code = (code || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length !== 5) { menuNote('Digite o código de 5 letras da sala.'); return; }
-  netReset(); net.role = 'guest'; me.id = 'B'; oth.id = 'A'; net.code = code; showLobby(); lobbyNote('Conectando…');
-  if (LOCAL) { net.bc = new BroadcastChannel('vgd-' + code); net.bc.onmessage = (e) => onMsg(e.data); net.open = true; hello(); return; }
-  if (!window.Peer) { lobbyNote('Não consegui carregar a parte online.'); return; }
-  const peer = net.peer = new window.Peer(undefined, { debug: 1 });
-  peer.on('open', () => attachConn(peer.connect('vgd-' + code.toLowerCase(), { reliable: true, serialization: 'json' })));
-  peer.on('error', (e) => lobbyNote(e.type === 'peer-unavailable' ? 'Sala não encontrada. Confira o código.' : 'Erro de conexão: ' + (e.type || e.message)));
-  setTimeout(() => { if (!net.open && net.role === 'guest') lobbyNote('Ainda conectando… se demorar, as duas redes podem estar bloqueando conexão direta.'); }, 9000);
+  netReset(); net.role = 'guest'; me.id = 'B'; oth.id = 'A'; net.code = code; net.joinAt = now(); showLobby(); lobbyNote('Conectando ao servidor…');
+  if (LOCAL) { net.bc = new BroadcastChannel('vgd-' + code); net.bc.onmessage = (e) => onBatch(e.data); net.linked = true; hello(); lobbyNote('Procurando a sala…'); return; }
+  if (!window.mqtt) { lobbyNote('Não consegui carregar a parte online. Confira a internet e recarregue a página.'); return; }
+  const [c] = await linkBroker([brokerOf(code)]); if (net.role !== 'guest' || net.code !== code || net.client) { if (c) c.end(true); return; }
+  if (!c) { lobbyNote('Não consegui falar com o servidor das salas. Confira a internet e tente de novo.'); return; }
+  attachLink(c); hello(); lobbyNote('Procurando a sala…');
 }
-function attachConn(c) { net.conn = c; c.on('open', () => { net.open = true; hello(); lobbyNote(''); }); c.on('data', onMsg); c.on('close', peerLeft); c.on('error', () => peerLeft()); }
-function peerLeft() { if (!oth.on && !net.open) return; net.open = false; oth.on = false; oth.tgt = null; if (oth.avatar) oth.avatar.g.visible = false; hudFeed('O outro jogador saiu', '#ff4b55'); if (game.running && net.role === 'guest') { endToMenu('O anfitrião saiu da partida.'); } renderLobby(); }
+function peerLeft() { if (!oth.on && !net.open) return; net.open = false; net.peerSid = ''; oth.on = false; oth.tgt = null; if (oth.avatar) oth.avatar.g.visible = false; hudFeed('O outro jogador saiu', '#ff4b55'); if (game.running && net.role === 'guest') { endToMenu('O anfitrião saiu da partida.'); return; } renderLobby(); }
+setInterval(() => {
+  const t = now(); if (!net.linked) return;
+  if (net.role === 'guest' && !net.open && t - net.lastHi > 1500) { net.lastHi = t; hello(); if (t - net.joinAt > 20000) lobbyNote('Sala não encontrada. Confira o código e se a sala ainda está aberta no outro aparelho.'); }
+  if (net.open && !game.running && t - net.lastPing > 2000) { net.lastPing = t; net.send({ t: 'ping' }); }
+  if (net.open && t - (oth.lastSeen || t) > 12000) peerLeft();
+  net.flush();
+}, 66);
 function onMsg(m) {
   if (!m || !m.t) return;
   switch (m.t) {
-    case 'hi': { const first = !oth.on; oth.on = true; oth.name = String(m.n || 'Aliado').slice(0, 14); oth.plat = m.pl === 'vr' ? 'vr' : 'pc'; if (first) hello(); renderLobby(); if (game.running && isHost()) net.send({ t: 'go', mode: game.mode, m: game.mission, s: game.seed, late: 1 }); break; }
+    case 'bye': peerLeft(); break;
+    case 'ping': break;
+    case 'hi': { const first = !oth.on; oth.on = true; net.open = true; lobbyNote(''); oth.name = String(m.n || 'Aliado').slice(0, 14); oth.plat = m.pl === 'vr' ? 'vr' : 'pc'; if (first) hello(); renderLobby(); if (game.running && isHost()) net.send({ t: 'go', mode: game.mode, m: game.mission, s: game.seed, late: 1 }); break; }
     case 'go': startMatch(m.mode, m.m, m.s, false); break;
     case 'lobby': endToLobby(); break;
     case 'quit': hudFeed(`${oth.name} saiu da partida`, '#ff4b55'); if (net.role === 'guest') endToLobby(); break;
@@ -1014,9 +1052,9 @@ function syncEnemies(list) {
 }
 function netTick(t) {
   if (!net.open || !game.running) return;
-  if (t - net.lastP > 50) { net.lastP = t; const h = headPos(V()), g = guns[inv.cur], rp = g.getWorldPosition(V()), rq = g.getWorldQuaternion(new THREE.Quaternion()); net.send({ t: 'p', a: [me.pos.x, me.pos.y, me.pos.z, h.x, h.y, h.z, me.yaw, me.pitch, rp.x, rp.y, rp.z, rq.x, rq.y, rq.z, rq.w, inv.cur, Math.round(me.hp), me.alive ? 1 : 0].map((v) => (typeof v === 'number' ? +v.toFixed(3) : v)) }); }
-  if (isHost() && t - net.lastE > 80) { net.lastE = t; net.send({ t: 'E', l: [...enemies.values()].filter((e) => e.alive).map((e) => [e.id, ETN.indexOf(e.type), +e.pos.x.toFixed(2), +e.pos.y.toFixed(2), +e.pos.z.toFixed(2), +e.yaw.toFixed(2), Math.round(e.hp), e.tele > 0 ? 1 : 0, +e.aim.x.toFixed(1), +e.aim.y.toFixed(1), +e.aim.z.toFixed(1)]) }); }
-  if (isHost() && M && t - net.lastM > 250) { net.lastM = t; net.send({ t: 'M', ph: M.phase, tt: +M.t.toFixed(1), k: M.kills, ch: Math.round(M.coreHp), pl: M.planted.map((v) => +v.toFixed(2)), ex: M.extract ? 1 : 0, b: M.bossId, g: M.got }); }
+  if (t - net.lastP > 66) { net.lastP = t; const h = headPos(V()), g = guns[inv.cur], rp = g.getWorldPosition(V()), rq = g.getWorldQuaternion(new THREE.Quaternion()); net.send({ t: 'p', a: [me.pos.x, me.pos.y, me.pos.z, h.x, h.y, h.z, me.yaw, me.pitch, rp.x, rp.y, rp.z, rq.x, rq.y, rq.z, rq.w, inv.cur, Math.round(me.hp), me.alive ? 1 : 0].map((v) => (typeof v === 'number' ? +v.toFixed(3) : v)) }); }
+  if (isHost() && t - net.lastE > 100) { net.lastE = t; net.send({ t: 'E', l: [...enemies.values()].filter((e) => e.alive).map((e) => [e.id, ETN.indexOf(e.type), +e.pos.x.toFixed(2), +e.pos.y.toFixed(2), +e.pos.z.toFixed(2), +e.yaw.toFixed(2), Math.round(e.hp), e.tele > 0 ? 1 : 0, +e.aim.x.toFixed(1), +e.aim.y.toFixed(1), +e.aim.z.toFixed(1)]) }); }
+  if (isHost() && M && t - net.lastM > 300) { net.lastM = t; net.send({ t: 'M', ph: M.phase, tt: +M.t.toFixed(1), k: M.kills, ch: Math.round(M.coreHp), pl: M.planted.map((v) => +v.toFixed(2)), ex: M.extract ? 1 : 0, b: M.bossId, g: M.got }); }
 }
 
 // ================= match flow
