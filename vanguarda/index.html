@@ -171,6 +171,8 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 #tab td{padding:6px 8px;text-align:right;font-weight:700}
 #tab th:first-child,#tab td:first-child{text-align:left}
 #fps{position:absolute;left:8px;top:6px;font-size:12px;color:rgba(255,255,255,.5);display:none}
+#netq{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:28px;font-size:12px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.75);background:rgba(0,0,0,.35);padding:3px 8px;border-radius:999px}
+#netq[data-q=ok]{color:#7dffb0}#netq[data-q=meh]{color:#ffd36b}#netq[data-q=bad]{color:#ff7b6b}
 #aimhud{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-family:var(--f-d);font-size:40px;text-align:center;display:none;line-height:.9;text-shadow:0 3px 14px rgba(0,0,0,.7)}
 #aimhud small{display:block;font-family:var(--f-u);font-size:13px;letter-spacing:.12em;color:var(--muted);font-weight:700}
 @media (max-width:900px){#menu .wrap{grid-template-columns:1fr}.side{order:-1}.chips.c4{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}}
@@ -323,6 +325,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
   <div id="death"></div>
   <div id="tab"></div>
   <div id="fps"></div>
+  <div id="netq" hidden></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
@@ -1925,23 +1928,64 @@ function mkTip() { const m = new THREE.Mesh(hookTip.geometry, hookTip.material);
 
 // ================= online: relay through a public MQTT broker over WSS (works behind any home router). ?local uses BroadcastChannel for tests.
 const BROKERS = QS.get('broker') ? [QS.get('broker')] : ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
-const TOPIC = 'vgd-duelo-v2', IMPORTANT = new Set(['hi', 'go', 'cfg', 'kill', 'h', 'sp', 'pk', 'again', 'lobby', 'quit', 'bye', 'pj', 'px', 'hk', 'hke', 'sw']);
+const TOPIC = 'vgd-duelo-v2', IMPORTANT = new Set(['hi', 'go', 'cfg', 'kill', 'h', 'sp', 'pk', 'again', 'lobby', 'quit', 'bye', 'pj', 'px', 'hk', 'hke', 'sw', 'rtc']);
+const RTC_ON = !QS.has('nortc') && typeof RTCPeerConnection !== 'undefined';
+const RTC_CFG = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }, { urls: 'stun:global.stun.twilio.com:3478' }] };
 const net = {
   role: 'solo', client: null, bc: null, linked: false, open: false, code: '', sid: Math.random().toString(36).slice(2, 10), peerSid: '', q: [], lastP: 0, lastPing: 0, lastHi: 0, joinAt: 0, quick: false, mm: null, lobby: { mode: 'classic', arena: 'canion' },
-  send(m) { if (this.linked) this.q.push(m); },
+  rtc: null, ping: 0, pingAt: 0, pingSeq: 0,
+  direct() { const r = this.rtc; return !!(r && r.open && r.u && r.u.readyState === 'open' && r.r && r.r.readyState === 'open'); },
+  // game messages go straight out on the direct link (no batching delay); through the broker they are batched every 20 ms
+  send(m) { if (!this.linked) return; this.q.push(m); if (this.direct()) this.flush(); },
   flush() {
-    if (!this.linked || !this.q.length) return; const batch = this.q.splice(0, this.q.length), body = { s: this.sid, m: batch };
-    try { if (this.client) this.client.publish(`${TOPIC}/${this.code}/${me.id}`, JSON.stringify(body), { qos: batch.some((x) => IMPORTANT.has(x.t)) ? 1 : 0 }); else if (this.bc) this.bc.postMessage(body); } catch {}
+    if (!this.linked || !this.q.length) return; const batch = this.q.splice(0, this.q.length);
+    if (this.direct()) {
+      const fast = batch.filter((x) => x.t === 'p' || x.t === 'pg' || x.t === 'po'), sure = batch.filter((x) => !(x.t === 'p' || x.t === 'pg' || x.t === 'po'));
+      try { if (fast.length) this.rtc.u.send(JSON.stringify({ s: this.sid, m: fast })); if (sure.length) this.rtc.r.send(JSON.stringify({ s: this.sid, m: sure })); return; } catch { rtcDrop('send'); }
+    }
+    const body = { s: this.sid, m: batch };
+    try { if (this.client) { const imp = batch.filter((x) => IMPORTANT.has(x.t)), rest = batch.filter((x) => !IMPORTANT.has(x.t)); if (imp.length) this.client.publish(`${TOPIC}/${this.code}/${me.id}`, JSON.stringify({ s: this.sid, m: imp }), { qos: 1 }); if (rest.length) this.client.publish(`${TOPIC}/${this.code}/${me.id}`, JSON.stringify({ s: this.sid, m: rest }), { qos: 0 }); } else if (this.bc) this.bc.postMessage(body); } catch {}
   },
 };
+// ---------- direct connection (WebRTC data channels): host offers, guest answers, both through the broker; ~10-60 ms instead of a round trip to a server abroad
+function rtcWire(dc) {
+  const opened = () => { const r = net.rtc; if (!r) return; if (dc.label === 'u') r.u = dc; else r.r = dc; if (net.direct() && !r.open) { r.open = true; r.openedAt = now(); net.flush(); if (!match.running) lobbyNote(''); netBadge(); } else if (r.u && r.r && r.u.readyState === 'open' && r.r.readyState === 'open') { r.open = true; netBadge(); } };
+  dc.onopen = opened; if (dc.readyState === 'open') setTimeout(opened, 0);
+  dc.onmessage = (e) => { let b; try { b = JSON.parse(e.data); } catch { return; } onBatch(b); };
+  dc.onclose = () => rtcDrop('close');
+}
+function rtcNew() {
+  const pc = new RTCPeerConnection(RTC_CFG); const r = (net.rtc = { pc, u: null, r: null, open: false, tries: (net.rtc ? net.rtc.tries : 0) + 1, startedAt: now() });
+  pc.onconnectionstatechange = () => { if (net.rtc !== r) return; if (pc.connectionState === 'failed' || pc.connectionState === 'closed') rtcDrop(pc.connectionState); };
+  pc.ondatachannel = (e) => rtcWire(e.channel);
+  return r;
+}
+const iceDone = (pc, ms) => new Promise((res) => { if (pc.iceGatheringState === 'complete') return res(); const to = setTimeout(res, ms); pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(to); res(); } }); });
+async function rtcOffer() {
+  if (!RTC_ON || !net.open || !isHost() || (net.rtc && (net.rtc.open || now() - net.rtc.startedAt < 8000))) return;
+  try { if (net.rtc) rtcClose(); const r = rtcNew(), pc = r.pc; rtcWire(pc.createDataChannel('u', { ordered: false, maxRetransmits: 0 })); rtcWire(pc.createDataChannel('r', { ordered: true }));
+    await pc.setLocalDescription(await pc.createOffer()); await iceDone(pc, 2500); if (net.rtc !== r) return; net.send({ t: 'rtc', k: 'offer', sdp: pc.localDescription.sdp }); net.flush(); } catch (e) { console.warn('rtc offer', e); }
+}
+async function rtcOnMsg(m) {
+  if (!RTC_ON) return;
+  try {
+    if (m.k === 'offer' && !isHost()) { if (net.rtc) rtcClose(); const r = rtcNew(), pc = r.pc; await pc.setRemoteDescription({ type: 'offer', sdp: m.sdp }); await pc.setLocalDescription(await pc.createAnswer()); await iceDone(pc, 2500); if (net.rtc !== r) return; net.send({ t: 'rtc', k: 'answer', sdp: pc.localDescription.sdp }); net.flush(); }
+    else if (m.k === 'answer' && isHost() && net.rtc && net.rtc.pc.signalingState === 'have-local-offer') await net.rtc.pc.setRemoteDescription({ type: 'answer', sdp: m.sdp });
+  } catch (e) { console.warn('rtc', e); }
+}
+function rtcClose() { const r = net.rtc; net.rtc = null; if (!r) return; try { r.u && r.u.close(); } catch {} try { r.r && r.r.close(); } catch {} try { r.pc.close(); } catch {} }
+function rtcDrop(why) { const r = net.rtc; if (!r) return; const was = r.open; rtcClose(); netBadge(); if (was) console.warn('direct link lost:', why); if (net.open && isHost() && r.tries < 4) setTimeout(rtcOffer, 1500); }
+// round-trip time over whatever link is in use
+function netPing() { if (!net.open) return; net.pingSeq++; net.pingAt = now(); net.send({ t: 'pg', i: net.pingSeq, z: Math.round(net.pingAt) }); }
+function netBadge() { const el = document.getElementById('netq'); if (!el) return; if (!match.online || !net.open) { el.hidden = true; return; } el.hidden = false; el.textContent = `${net.direct() ? 'direto' : 'servidor'} · ${net.ping ? Math.round(net.ping) + ' ms' : '…'}`; el.dataset.q = !net.ping ? '' : net.ping < 70 ? 'ok' : net.ping < 140 ? 'meh' : 'bad'; }
 const CODE_CH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const genCode = () => Array.from({ length: 5 }, () => CODE_CH[(Math.random() * CODE_CH.length) | 0]).join('');
 const brokerOf = (code) => (BROKERS.length === 1 ? 0 : CODE_CH.indexOf(code[0]) % BROKERS.length);
 const isHost = () => net.role !== 'guest';
 function netReset() {
   try { if (net.open) { net.q.push({ t: 'bye' }); net.flush(); } } catch {}
-  mmStop(); const c = net.client; if (c) setTimeout(() => { try { c.end(true); } catch {} }, 300); try { if (net.bc) net.bc.close(); } catch {}
-  Object.assign(net, { role: 'solo', client: null, bc: null, linked: false, open: false, code: '', peerSid: '', q: [], quick: false }); oth.on = false; oth.snaps.length = 0;
+  mmStop(); rtcClose(); const c = net.client; if (c) setTimeout(() => { try { c.end(true); } catch {} }, 300); try { if (net.bc) net.bc.close(); } catch {}
+  Object.assign(net, { role: 'solo', client: null, bc: null, linked: false, open: false, code: '', peerSid: '', q: [], quick: false, ping: 0 }); oth.on = false; oth.snaps.length = 0; oth.excess = [];
 }
 function hello() { net.send({ t: 'hi', n: prof.name, pl: QUEST ? 'vr' : 'pc', c: prof.color, s: prof.skin, lv: prof.lvl, r: prof.mmr }); }
 function mqttTry(url) {
@@ -2021,18 +2065,22 @@ function peerLeft() {
 setInterval(() => {
   const t = now(); if (!net.linked) return;
   if (!net.open && t - net.lastHi > 1500 && (net.role === 'guest' || net.quick)) { net.lastHi = t; hello(); if (t - net.joinAt > 20000 && net.role === 'guest') lobbyNote('Sala não encontrada. Confira o código e se a sala está aberta no outro aparelho.'); }
-  if (net.open && !match.running && t - net.lastPing > 2000) { net.lastPing = t; net.send({ t: 'ping' }); }
+  if (net.open && t - net.lastPing > 1000) { net.lastPing = t; netPing(); netBadge(); }
+  if (net.open && isHost() && RTC_ON && !net.direct() && (!net.rtc || t - net.rtc.startedAt > 9000) && (!net.rtc || net.rtc.tries < 4)) rtcOffer();
   if (net.open && t - (oth.lastSeen || t) > 12000) peerLeft();
   net.flush();
-}, 50);
+}, 20);
 function onMsg(m) {
   if (!m || !m.t) return;
   switch (m.t) {
     case 'bye': peerLeft(); break;
     case 'ping': break;
+    case 'pg': net.send({ t: 'po', i: m.i, z: m.z }); if (net.direct()) net.flush(); break;
+    case 'po': if (m.i === net.pingSeq) { const rtt = now() - net.pingAt; net.ping = net.ping ? net.ping * 0.6 + rtt * 0.4 : rtt; netBadge(); } break;
+    case 'rtc': rtcOnMsg(m); break;
     case 'hi': {
       const first = !oth.on; oth.on = true; net.open = true; lobbyNote(''); oth.name = String(m.n || 'Oponente').slice(0, 14); oth.plat = m.pl === 'vr' ? 'vr' : 'pc'; oth.color = clamp(m.c | 0, 0, COLORS.length - 1); oth.skin = clamp(m.s | 0, 0, SKINS.length - 1); oth.lvl = m.lv | 0; oth.mmr = +m.r || 1000;
-      if (first) { hello(); if (isHost()) net.send({ t: 'cfg', mode: net.lobby.mode, arena: net.lobby.arena }); sfx.ui(); }
+      if (first) { hello(); if (isHost()) { net.send({ t: 'cfg', mode: net.lobby.mode, arena: net.lobby.arena }); setTimeout(rtcOffer, 300); } sfx.ui(); }
       renderLobby();
       if (first && net.quick && isHost() && !match.running) setTimeout(() => { if (net.open && !match.running) startOnline(); }, 1500);
       break;
@@ -2065,10 +2113,13 @@ function remoteFire(m) {
   const near = (m.e || []).some((e) => V(e[0], e[1], e[2]).distanceTo(eyePos(me, V())) < 2.5); if (near && me.alive) whiz();
 }
 // remote player: snapshots buffered and played back ~100 ms behind so movement stays smooth through network jitter
-const INTERP = 105;
+let INTERP = 105;
 function pushSnap(a) {
   const s = { t: a[0], pos: V(a[1], a[2], a[3]), vel: V(a[4], a[5], a[6]), yaw: a[7], pitch: a[8], w: a[9], hp: a[10], ar: a[11], fl: a[12], eh: a[13] || P.eye };
-  const r = now(), off = r - s.t; oth.offs.push(off); if (oth.offs.length > 60) oth.offs.shift(); oth.off = Math.min(...oth.offs);
+  const r = now(), off = r - s.t; oth.offs.push(off); if (oth.offs.length > 90) oth.offs.shift(); oth.off = Math.min(...oth.offs);
+  // playback delay = send interval + how late snapshots usually arrive (90th percentile), a little margin
+  (oth.excess ||= []).push(off - oth.off); if (oth.excess.length > 90) oth.excess.shift();
+  if (oth.excess.length > 10) { const ex = oth.excess.slice().sort((x, y) => x - y), p90 = ex[Math.floor(ex.length * 0.9)], iv = net.direct() ? 33 : 48; INTERP = lerp(INTERP, clamp(iv + p90 + 8, 38, 160), 0.1); }
   const last = oth.snaps[oth.snaps.length - 1]; if (last && s.t <= last.t) return; oth.snaps.push(s); if (oth.snaps.length > 40) oth.snaps.shift();
   oth.hp = s.hp; oth.armor = s.ar; oth.fury = s.fl & 128 ? 1 : 0; oth.spawnProt = s.fl & 256 ? 1 : 0; const alive = !!(s.fl & 1); if (alive && !oth.alive && match.running) oth.alive = true;
   if (s.w !== oth.inv.cur && oth.av) { oth.inv.cur = s.w; setHumanGun(oth.av, s.w); }
@@ -2090,7 +2141,7 @@ function updateRemote(dt) {
 }
 function netTick(t) {
   if (!net.open || !match.running) return;
-  if (t - net.lastP >= 48) {
+  if (t - net.lastP >= (net.direct() ? 33 : 48)) {
     net.lastP = t; const f = me; let yaw = f.yaw, pitch = f.pitch, eh = f.eye;
     if (xr.on) { aimOf(me, _fo, _fd); yaw = Math.atan2(-_fd.x, -_fd.z); pitch = Math.asin(clamp(_fd.y, -1, 1)); camera.getWorldPosition(_fm); eh = clamp(_fm.y - f.pos.y, 0.6, 2.1); }
     const fl = (f.alive ? 1 : 0) | (f.slide ? 2 : 0) | (f.wall ? (f.wall.side > 0 ? 8 : 4) : 0) | (f.hook ? 16 : 0) | (f.onGround ? 32 : 0) | (f.inv.ads > 0.5 ? 64 : 0) | (f.fury > 0 ? 128 : 0) | (f.spawnProt > 0 ? 256 : 0);
