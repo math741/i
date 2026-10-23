@@ -1358,7 +1358,7 @@ function makeTag(name, color) {
 const HIT_DEF = [['head', 0.135, 'head'], ['chest', 0.21, 'body'], ['belly', 0.19, 'body'], ['pelvis', 0.18, 'body'], ['thL', 0.105, 'legs'], ['thR', 0.105, 'legs'], ['shL', 0.085, 'legs'], ['shR', 0.085, 'legs'], ['arL', 0.07, 'body'], ['arR', 0.07, 'body']];
 function buildHuman(colorIdx, skin, gunIdx, name, tagColor) {
   const C = COLORS[colorIdx] || COLORS[0];
-  const g = new THREE.Group(), body = new THREE.Group(); g.add(body); body.position.y = 1.0;
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body); body.position.y = 1.0; scene.add(g);
   const model = SkeletonUtils.clone(SOLDIER.scene); model.position.y = -1.0; body.add(model);
   const mats = [], tint = new THREE.Color(C.tint);
   const visor = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: new THREE.Color(C.hex), emissiveIntensity: 2.4, roughness: 0.25, metalness: 0.4 });
