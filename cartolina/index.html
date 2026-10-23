@@ -153,7 +153,7 @@ header .sp { flex: 1; }
     <section class="pane" id="p-img" role="tabpanel" aria-labelledby="t-img">
       <div class="sec">
         <h2>Sua imagem</h2>
-        <p>A imagem vai inteira pra cartolina, do jeito que ela é. Arraste um arquivo pra cá, cole com Ctrl+V ou toque em Escolher imagem.</p>
+        <p>A imagem vai inteira pra folha, do jeito que ela é. Arraste um arquivo pra cá, cole com Ctrl+V ou toque em Escolher imagem.</p>
         <div class="imgcard"><canvas id="thumb" width="168" height="168"></canvas><div><b id="imgName">Exemplo</b><span id="imgInfo"></span></div></div>
       </div>
       <div class="q" id="quality"></div>
@@ -163,7 +163,7 @@ header .sp { flex: 1; }
     <section class="pane" id="p-sheet" role="tabpanel" aria-labelledby="t-sheet" hidden>
       <div class="sec">
         <h2>Folha</h2>
-        <p>A cartolina comum tem 50 × 66 cm. Escolha outra se for usar papel diferente.</p>
+        <p>A folha A4 tem 21 × 29,7 cm e a cartolina comum 50 × 66 cm. Escolha a folha que você vai usar: na realidade mista o app procura uma folha desse tamanho.</p>
         <div class="chips" id="sheets"></div>
         <div class="dims" id="customDims" hidden>
           <label for="cw">Largura (cm)<input id="cw" type="number" min="10" max="300" step="0.5" inputmode="decimal"></label>
@@ -228,15 +228,15 @@ const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelect
 const nf = (n, d = 1) => Number(n).toLocaleString('pt-BR', { maximumFractionDigits: d });
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const SHEETS = [
-  { id: 'cartolina', name: 'Cartolina', w: 50, h: 66 }, { id: 'meia', name: 'Meia cartolina', w: 33, h: 50 }, { id: 'cartao', name: 'Papel cartão', w: 48, h: 66 },
-  { id: 'pardo', name: 'Papel pardo', w: 66, h: 96 }, { id: 'a2', name: 'A2', w: 42, h: 59.4 }, { id: 'a3', name: 'A3', w: 29.7, h: 42 }, { id: 'a4', name: 'A4', w: 21, h: 29.7 }, { id: 'custom', name: 'Outra medida', w: 50, h: 66 },
+  { id: 'a4', name: 'Folha A4', w: 21, h: 29.7 }, { id: 'cartolina', name: 'Cartolina', w: 50, h: 66 }, { id: 'meia', name: 'Meia cartolina', w: 33, h: 50 }, { id: 'cartao', name: 'Papel cartão', w: 48, h: 66 },
+  { id: 'pardo', name: 'Papel pardo', w: 66, h: 96 }, { id: 'a2', name: 'A2', w: 42, h: 59.4 }, { id: 'a3', name: 'A3', w: 29.7, h: 42 }, { id: 'oficio', name: 'Ofício', w: 21.6, h: 33 }, { id: 'custom', name: 'Outra medida', w: 50, h: 66 },
 ];
 const PAPERS = [
   { id: 'branca', name: 'Branca', c: '#f7f5ef' }, { id: 'amarela', name: 'Amarela', c: '#f6d64a' }, { id: 'rosa', name: 'Rosa', c: '#f3b4c6' }, { id: 'azul', name: 'Azul', c: '#8cc0e8' }, { id: 'verde', name: 'Verde', c: '#9bd197' },
   { id: 'laranja', name: 'Laranja', c: '#f4a056' }, { id: 'vermelha', name: 'Vermelha', c: '#d8463e' }, { id: 'lilas', name: 'Lilás', c: '#bda4df' }, { id: 'preta', name: 'Preta', c: '#25252a' }, { id: 'parda', name: 'Parda', c: '#c39a6b' },
 ];
 const GRIDS = [2, 3, 4, 5, 10];
-const S = { img: null, name: '', isSample: true, sheet: 'cartolina', cw: 50, ch: 66, orient: 'auto', paper: 'branca', fit: 'contain', margin: 2, rot: 0, cx: 25, cy: 33, wcm: 40, grid: false, gsize: 5, show: false, printBg: false, printGrid: false };
+const S = { img: null, name: '', isSample: true, sheet: 'a4', cw: 21, ch: 29.7, orient: 'auto', paper: 'branca', fit: 'contain', margin: 1, rot: 0, cx: 25, cy: 33, wcm: 40, grid: false, gsize: 5, show: false, printBg: false, printGrid: false };
 const view = $('#view'), ctx = view.getContext('2d'), work = $('#work');
 let V = { k: 1, ox: 0, oy: 0, W: 50, H: 66, cssW: 0, cssH: 0 }, L = null, pal = [], snapX = false, snapY = false;
 
@@ -248,7 +248,7 @@ const store = {
 function idb(mode, fn) { return new Promise((res) => { try { const r = indexedDB.open('cartolina', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => { try { const tx = r.result.transaction('kv', mode); const st = tx.objectStore('kv'); const q = fn(st); tx.oncomplete = () => res(q && q.result); tx.onerror = () => res(null); } catch { res(null); } }; r.onerror = () => res(null); } catch { res(null); } }); }
 const saveImgBlob = (blob, name) => idb('readwrite', (st) => st.put({ blob, name }, 'img'));
 const loadImgBlob = () => idb('readonly', (st) => st.get('img'));
-const persist = () => { const { img, ...rest } = S; store.set('state', rest); };
+const persist = () => { const { img, ...rest } = S; store.set('state2', rest); };
 
 // ---------- paper fibre texture (tileable), used for the sheet and the printed look
 const tex = (() => { const n = 256, c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d'), d = g.createImageData(n, n);
@@ -581,11 +581,11 @@ function drawOverlay(cv, land, Wcm, Hcm, grid) {
     g.restore(); }
   return l;
 }
-window.CARTOLINA = { get S() { return S; }, layoutFor, drawOverlay, toast, colName, store, name: () => (S.isSample ? 'Pôr do sol (exemplo)' : S.name || 'Imagem') };
+window.CARTOLINA = { get S() { return S; }, sheetSize: () => { const d = sheetDef(); return S.sheet === 'custom' ? [S.cw, S.ch] : [d.w, d.h]; }, sheetName: () => (S.sheet === 'custom' ? 'folha' : sheetDef().name.toLowerCase()), layoutFor, drawOverlay, toast, colName, store, name: () => (S.isSample ? 'Pôr do sol (exemplo)' : S.name || 'Imagem') };
 
 // ---------- start: restore the last project, or open with the example image
 (async () => {
-  const st = store.get('state', null); if (st) Object.assign(S, st); S.show = false;
+  const st = store.get('state2', null); if (st) Object.assign(S, st); S.show = false;
   buildPanel(); new ResizeObserver(resize).observe(work);
   let rec = null; try { rec = await loadImgBlob(); } catch {}
   if (rec && rec.blob && !st?.isSample) { try { const url = URL.createObjectURL(rec.blob), im = new Image(); im.src = url; await im.decode(); const keep = { fit: S.fit, cx: S.cx, cy: S.cy, wcm: S.wcm, rot: S.rot }; S.img = im; S.name = rec.name; S.isSample = false; Object.assign(S, keep); extractPalette(); thumb(); resize(); return; } catch {} }
@@ -595,6 +595,177 @@ window.CARTOLINA = { get S() { return S; }, layoutFor, drawOverlay, toast, colNa
 })();
 </script>
 <script type="module">
+const V = (() => {
+// ================= vision: find a sheet of paper in a camera frame, its pose, and self-calibrate the headset camera
+// Pure functions (no DOM) so they can be tested with synthetic frames.
+// Conventions: camera frame for projection is the computer-vision one (x right, y down, z forward).
+// Rotations are row-major 3x3 arrays [r00 r01 r02 r10 ... r22]; vectors are [x, y, z].
+
+// ---------- small linear algebra
+const mul3 = (A, B) => { const C = new Array(9); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) C[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j]; return C; };
+const tr3 = (A) => [A[0], A[3], A[6], A[1], A[4], A[7], A[2], A[5], A[8]];
+const mv3 = (A, v) => [A[0] * v[0] + A[1] * v[1] + A[2] * v[2], A[3] * v[0] + A[4] * v[1] + A[5] * v[2], A[6] * v[0] + A[7] * v[1] + A[8] * v[2]];
+const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], scl = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nrm = (a) => Math.hypot(a[0], a[1], a[2]);
+function expmap(w) { const th = nrm(w); if (th < 1e-12) return [1, -w[2], w[1], w[2], 1, -w[0], -w[1], w[0], 1]; const k = scl(w, 1 / th), c = Math.cos(th), s = Math.sin(th), v = 1 - c, [x, y, z] = k; return [c + x * x * v, x * y * v - z * s, x * z * v + y * s, y * x * v + z * s, c + y * y * v, y * z * v - x * s, z * x * v - y * s, z * y * v + x * s, c + z * z * v]; }
+function logmap(R) { const c = clampN((R[0] + R[4] + R[8] - 1) / 2, -1, 1), th = Math.acos(c); if (th < 1e-9) return [0, 0, 0]; if (Math.PI - th < 1e-6) { const x = Math.sqrt(Math.max(0, (R[0] + 1) / 2)), y = Math.sqrt(Math.max(0, (R[4] + 1) / 2)) * (R[1] >= 0 ? 1 : -1), z = Math.sqrt(Math.max(0, (R[8] + 1) / 2)) * (R[2] >= 0 ? 1 : -1); return scl([x, y, z], th); } const k = th / (2 * Math.sin(th)); return [(R[7] - R[5]) * k, (R[2] - R[6]) * k, (R[3] - R[1]) * k]; }
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+function quatToR(q) { const [x, y, z, w] = q; return [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w), 2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w), 2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]; }
+function rToQuat(R) { const t = R[0] + R[4] + R[8]; let x, y, z, w; if (t > 0) { const s = Math.sqrt(t + 1) * 2; w = s / 4; x = (R[7] - R[5]) / s; y = (R[2] - R[6]) / s; z = (R[3] - R[1]) / s; } else if (R[0] > R[4] && R[0] > R[8]) { const s = Math.sqrt(1 + R[0] - R[4] - R[8]) * 2; w = (R[7] - R[5]) / s; x = s / 4; y = (R[1] + R[3]) / s; z = (R[2] + R[6]) / s; } else if (R[4] > R[8]) { const s = Math.sqrt(1 + R[4] - R[0] - R[8]) * 2; w = (R[2] - R[6]) / s; x = (R[1] + R[3]) / s; y = s / 4; z = (R[5] + R[7]) / s; } else { const s = Math.sqrt(1 + R[8] - R[0] - R[4]) * 2; w = (R[3] - R[1]) / s; x = (R[2] + R[6]) / s; y = (R[5] + R[7]) / s; z = s / 4; } const n = Math.hypot(x, y, z, w); return [x / n, y / n, z / n, w / n]; }
+function orthonormalize(R) { // nearest rotation via a few Newton iterations of the polar decomposition
+  let A = R.slice(); for (let it = 0; it < 12; it++) { const inv = inv3(tr3(A)); if (!inv) break; A = A.map((v, i) => 0.5 * (v + inv[i])); } return A; }
+function inv3(A) { const [a, b, c, d, e, f, g, h, i] = A, co = [e * i - f * h, -(b * i - c * h), b * f - c * e, -(d * i - f * g), a * i - c * g, -(a * f - c * d), d * h - e * g, -(a * h - b * g), a * e - b * d], det = a * co[0] + b * co[3] + c * co[6]; if (Math.abs(det) < 1e-18) return null; return co.map((v) => v / det); }
+function solve(A, b, n) { // Gaussian elimination with partial pivoting, A is n*n row-major (copied)
+  const M = A.slice(), x = b.slice();
+  for (let c = 0; c < n; c++) { let p = c, mx = Math.abs(M[c * n + c]); for (let r = c + 1; r < n; r++) { const v = Math.abs(M[r * n + c]); if (v > mx) { mx = v; p = r; } } if (mx < 1e-14) return null;
+    if (p !== c) { for (let k = 0; k < n; k++) { const t = M[c * n + k]; M[c * n + k] = M[p * n + k]; M[p * n + k] = t; } const t = x[c]; x[c] = x[p]; x[p] = t; }
+    for (let r = c + 1; r < n; r++) { const f = M[r * n + c] / M[c * n + c]; if (!f) continue; for (let k = c; k < n; k++) M[r * n + k] -= f * M[c * n + k]; x[r] -= f * x[c]; } }
+  for (let r = n - 1; r >= 0; r--) { let s = x[r]; for (let k = r + 1; k < n; k++) s -= M[r * n + k] * x[k]; x[r] = s / M[r * n + r]; } return x; }
+
+// ---------- 1. find the sheet: bright, low-saturation, convex quadrilateral
+function detectSheet(rgba, w, h, opt = {}) {
+  const n = w * h, L = new Uint8Array(n), hist = new Float64Array(256);
+  for (let i = 0, p = 0; i < n; i++, p += 4) { const r = rgba[p], g = rgba[p + 1], b = rgba[p + 2], l = (r * 77 + g * 150 + b * 29) >> 8, mx = Math.max(r, g, b), mn = Math.min(r, g, b); L[i] = l; hist[l]++; rgba[p + 3] = mx ? ((mx - mn) * 255) / mx : 0; }
+  // Otsu
+  let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t]; let sB = 0, wB = 0, best = 0, thr = 128;
+  for (let t = 0; t < 256; t++) { wB += hist[t]; if (!wB) continue; const wF = n - wB; if (!wF) break; sB += t * hist[t]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) * (mB - mF); if (v > best) { best = v; thr = t; } }
+  thr = Math.max(thr, opt.minL || 70); if (opt.log) opt.log('otsu', thr);
+  const satMax = opt.satMax ?? 95, mask = new Uint8Array(n);
+  for (let i = 0, p = 3; i < n; i++, p += 4) mask[i] = L[i] > thr && rgba[p] < satMax ? 1 : 0;
+  // opening (3x3 erode then dilate) to drop speckles and thin bright lines
+  const tmp = new Uint8Array(n);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; tmp[i] = mask[i] & mask[i - 1] & mask[i + 1] & mask[i - w] & mask[i + w]; }
+  mask.fill(0); for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; mask[i] = tmp[i] | tmp[i - 1] | tmp[i + 1] | tmp[i - w] | tmp[i + w]; }
+  // connected components
+  const lab = new Int32Array(n), stack = new Int32Array(n); let nl = 0, bestQ = null;
+  for (let s = 0; s < n; s++) {
+    if (!mask[s] || lab[s]) continue; nl++; let top = 0; stack[top++] = s; lab[s] = nl; let area = 0, x0 = w, x1 = 0, y0 = h, y1 = 0;
+    const rowMin = new Int32Array(h).fill(w), rowMax = new Int32Array(h).fill(-1), colMin = new Int32Array(w).fill(h), colMax = new Int32Array(w).fill(-1);
+    while (top) { const i = stack[--top], x = i % w, y = (i / w) | 0; area++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (x < rowMin[y]) rowMin[y] = x; if (x > rowMax[y]) rowMax[y] = x; if (y < colMin[x]) colMin[x] = y; if (y > colMax[x]) colMax[x] = y;
+      if (x > 0 && mask[i - 1] && !lab[i - 1]) { lab[i - 1] = nl; stack[top++] = i - 1; } if (x < w - 1 && mask[i + 1] && !lab[i + 1]) { lab[i + 1] = nl; stack[top++] = i + 1; }
+      if (y > 0 && mask[i - w] && !lab[i - w]) { lab[i - w] = nl; stack[top++] = i - w; } if (y < h - 1 && mask[i + w] && !lab[i + w]) { lab[i + w] = nl; stack[top++] = i + w; } }
+    if (opt.log && area > 200) opt.log('comp', area, x0, y0, x1, y1);
+    if (area < n * (opt.minArea || 0.006) || area > n * 0.85) continue;
+    if (x0 < 2 || y0 < 2 || x1 > w - 3 || y1 > h - 3) continue; // the whole sheet must be in view
+    const pts = []; for (let y = y0; y <= y1; y++) if (rowMax[y] >= 0) { pts.push([rowMin[y], y + 0.5]); pts.push([rowMax[y] + 1, y + 0.5]); }
+    for (let x = x0; x <= x1; x++) if (colMax[x] >= 0) { pts.push([x + 0.5, colMin[x]]); pts.push([x + 0.5, colMax[x] + 1]); }
+    const q = quadFromPoints(pts, area, opt.log); if (opt.log) opt.log('quad', q && q.quad.map((c) => c.map((v) => +v.toFixed(1))), q && q.score); if (q && (!bestQ || q.score > bestQ.score)) bestQ = q;
+  }
+  return bestQ;
+}
+function hull(P) { const p = P.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); const lo = [], up = []; for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); } for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); } up.pop(); lo.pop(); return lo.concat(up); }
+const polyArea = (Q) => { let a = 0; for (let i = 0; i < Q.length; i++) { const p = Q[i], q = Q[(i + 1) % Q.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };
+function quadFromPoints(pts, area, log) {
+  let H = hull(pts); if (H.length < 4) return null;
+  if (H.length > 64) { const step = H.length / 64; H = Array.from({ length: 64 }, (_, i) => H[Math.floor(i * step)]); }
+  // largest-area quadrilateral with vertices on the hull
+  const m = H.length; let best = 0, bq = null;
+  for (let i = 0; i < m; i++) for (let j = i + 2; j < m; j++) { if (i === 0 && j === m - 1) continue; const a = H[i], b = H[j], dx = b[0] - a[0], dy = b[1] - a[1]; let dl = 0, kl = -1, dr = 0, kr = -1;
+    for (let k = 0; k < m; k++) { if (k === i || k === j) continue; const d = dx * (H[k][1] - a[1]) - dy * (H[k][0] - a[0]); const ad = Math.abs(d); if (k > i && k < j) { if (ad > dl) { dl = ad; kl = k; } } else if (ad > dr) { dr = ad; kr = k; } }
+    if (kl < 0 || kr < 0) continue; const A = (dl + dr) / 2; if (A > best) { best = A; bq = [i, kl, j, kr]; } }
+  if (!bq) { if (log) log('no bq'); return null; } bq.sort((x, y) => x - y);
+  let Q = bq.map((k) => H[k]);
+  // refine every side with a line fit through the boundary points near it, then intersect neighbouring sides
+  const lines = [];
+  for (let s = 0; s < 4; s++) { const a = Q[s], b = Q[(s + 1) % 4], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy); if (len < 4) return null; const ux = dx / len, uy = dy / len; const sel = [];
+    for (const p of pts) { const t = ((p[0] - a[0]) * ux + (p[1] - a[1]) * uy) / len, d = Math.abs((p[0] - a[0]) * uy - (p[1] - a[1]) * ux); if (t > 0.08 && t < 0.92 && d < Math.max(2.2, len * 0.02)) sel.push(p); }
+    if (sel.length < 6) { if (log) log('few pts side', s, sel.length); return null; } let mx = 0, my = 0; for (const p of sel) { mx += p[0]; my += p[1]; } mx /= sel.length; my /= sel.length; let sxx = 0, sxy = 0, syy = 0; for (const p of sel) { const x = p[0] - mx, y = p[1] - my; sxx += x * x; sxy += x * y; syy += y * y; }
+    const ang = 0.5 * Math.atan2(2 * sxy, sxx - syy); lines.push({ p: [mx, my], d: [Math.cos(ang), Math.sin(ang)] }); }
+  const inter = (L1, L2) => { const den = L1.d[0] * L2.d[1] - L1.d[1] * L2.d[0]; if (Math.abs(den) < 1e-6) return null; const t = ((L2.p[0] - L1.p[0]) * L2.d[1] - (L2.p[1] - L1.p[1]) * L2.d[0]) / den; return [L1.p[0] + L1.d[0] * t, L1.p[1] + L1.d[1] * t]; };
+  const R = []; for (let s = 0; s < 4; s++) { const c = inter(lines[(s + 3) % 4], lines[s]); if (!c) return null; R.push(c); }
+  // sanity: convex, sensible angles, fills the blob
+  const qa = Math.abs(polyArea(R)); if (qa < 10) return null; const fill = area / qa; if (log) log('fill', fill.toFixed(3), qa.toFixed(0)); if (fill < 0.86 || fill > 1.12) return null;
+  for (let s = 0; s < 4; s++) { const p = R[(s + 3) % 4], c = R[s], q = R[(s + 1) % 4], v1 = [p[0] - c[0], p[1] - c[1]], v2 = [q[0] - c[0], q[1] - c[1]], cs = (v1[0] * v2[0] + v1[1] * v2[1]) / (Math.hypot(...v1) * Math.hypot(...v2)); if (Math.abs(cs) > 0.8) return null; }
+  if (polyArea(R) < 0) R.reverse(); // clockwise on screen (y down)
+  return { quad: R, score: qa * Math.min(fill, 1 / fill), area: qa };
+}
+
+// ---------- 2. homography and planar pose
+function homography(src, dst) { // maps src[i] (x,y) -> dst[i] (u,v), 4 points
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) { const [x, y] = src[i], [u, v] = dst[i]; A.push(x, y, 1, 0, 0, 0, -u * x, -u * y); b.push(u); A.push(0, 0, 0, x, y, 1, -v * x, -v * y); b.push(v); }
+  const h = solve(A, b, 8); if (!h) return null; return [h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1];
+}
+// focal length from one view of a rectangle of known shape (principal point known, square pixels)
+function focalFromH(H, cx, cy) {
+  const T = [1, 0, -cx, 0, 1, -cy, 0, 0, 1], G = mul3(T, H), h11 = G[0], h21 = G[3], h31 = G[6], h12 = G[1], h22 = G[4], h32 = G[7];
+  const a1 = h11 * h12 + h21 * h22, b1 = h31 * h32, a2 = h11 * h11 + h21 * h21 - h12 * h12 - h22 * h22, b2 = h31 * h31 - h32 * h32, den = b1 * b1 + b2 * b2;
+  if (den < 1e-20) return null; const f2 = -(a1 * b1 + a2 * b2) / den; return f2 > 0 ? Math.sqrt(f2) : null;
+}
+// pose of the sheet in the (CV) camera: X_cam = R * X_sheet + t, sheet corners in metres on z = 0
+function planarPose(H, f, cx, cy) {
+  const Ki = [1 / f, 0, -cx / f, 0, 1 / f, -cy / f, 0, 0, 1], B = mul3(Ki, H); let b1 = [B[0], B[3], B[6]], b2 = [B[1], B[4], B[7]], b3 = [B[2], B[5], B[8]];
+  let lam = 2 / (nrm(b1) + nrm(b2)); if (b3[2] * lam < 0) lam = -lam; const r1 = scl(b1, lam), r2 = scl(b2, lam), t = scl(b3, lam), r3 = cross(r1, r2);
+  const R = orthonormalize([r1[0], r2[0], r3[0], r1[1], r2[1], r3[1], r1[2], r2[2], r3[2]]);
+  const skew = Math.abs(dot(r1, r2)) / (nrm(r1) * nrm(r2)), ratio = nrm(b1) / nrm(b2);
+  return { R, t, skew, ratio };
+}
+// sheet corners (metres) in the order matching a clockwise quad seen from the front: (-w/2,+h/2) (w/2,h/2) (w/2,-h/2) (-w/2,-h/2) with y up on the sheet
+const sheetCorners = (W, H) => [[-W / 2, H / 2], [W / 2, H / 2], [W / 2, -H / 2], [-W / 2, -H / 2]];
+// best assignment of the detected quad to the sheet's corners (both ways round: long side across or along)
+function poseFromQuad(quad, W, H, f, cx, cy) {
+  let best = null;
+  for (const [ww, hh, swap] of [[W, H, false], [H, W, true]]) for (let s = 0; s < 4; s++) {
+    const img = [0, 1, 2, 3].map((k) => quad[(k + s) % 4]), Hm = homography(sheetCorners(ww, hh), img); if (!Hm) continue;
+    // with a clockwise image quad and y-up sheet corners the mapping flips orientation; mirror y on the sheet to keep a proper rotation
+    const P = planarPose(Hm, f, cx, cy); if (P.t[2] <= 0) continue; const err = P.skew + Math.abs(Math.log(P.ratio));
+    if (!best || err < best.err) best = { ...P, err, shift: s, swap, W: ww, H: hh, img, Hm };
+  }
+  return best;
+}
+function projectCV(Pc, f, cx, cy) { return [cx + (f * Pc[0]) / Pc[2], cy + (f * Pc[1]) / Pc[2]]; }
+
+// ---------- 3. world pose from camera pose, and self-calibration of the headset camera
+// Poses: head (viewer) in world = {R, t} (GL axes: x right, y up, z back); camera in head = X {R, t} (GL axes); sheet in world = S {R, t} (x right, y up, z out of the paper)
+const GL2CV = [1, 0, 0, 0, -1, 0, 0, 0, -1];
+function projectWorld(Pw, head, X, f, cx, cy, flipU, wImg) {
+  const Ph = mv3(tr3(head.R), sub(Pw, head.t)), Pc = mv3(tr3(X.R), sub(Ph, X.t)), q = mv3(GL2CV, Pc); if (q[2] <= 1e-4) return null;
+  let u = cx + (f * q[0]) / q[2]; const v = cy + (f * q[1]) / q[2]; if (flipU) u = wImg - u; return [u, v];
+}
+// from a per-frame camera pose (CV) of the sheet to the sheet pose in the world
+function sheetWorldFromCam(P, head, X) {
+  // sheet->camCV: R_s, t_s ; camGL = GL2CV * camCV ; head = X ; world = head pose
+  const Rgl = mul3(GL2CV, P.R), tgl = mv3(GL2CV, P.t), Rh = mul3(X.R, Rgl), th = add(mv3(X.R, tgl), X.t);
+  return { R: mul3(head.R, Rh), t: add(mv3(head.R, th), head.t) };
+}
+// head pose at time t from a short history [{t, R, p}] (linear position, normalized-lerp rotation)
+function headAt(hist, t) {
+  if (!hist || !hist.length) return null; if (t <= hist[0].t) return { R: hist[0].R, t: hist[0].p }; const L = hist[hist.length - 1]; if (t >= L.t) return { R: L.R, t: L.p };
+  let i = 1; while (i < hist.length && hist[i].t < t) i++; const a = hist[i - 1], b = hist[i], u = (t - a.t) / Math.max(1e-6, b.t - a.t);
+  const d = logmap(mul3(tr3(a.R), b.R)); return { R: mul3(a.R, expmap(scl(d, u))), t: add(a.p, scl(sub(b.p, a.p), u)) };
+}
+// Levenberg-Marquardt over: log f, camera-in-head rotation/translation, and (unless fixed) the sheet pose in the world.
+// frames: [{ head:{R,t}, quad:[[u,v]x4] (already matched to sheet corners order) }]
+function bundleAdjust(frames, init, opt = {}) {
+  const { W, H, cx, cy } = opt, C = sheetCorners(W, H).map(([x, y]) => [x, y, 0]);
+  const optF = opt.optF !== false, optX = opt.optX !== false, optS = !opt.fixedS;
+  const X0 = init.X, S0 = optS ? init.S : opt.fixedS, f0 = init.f, sigR = opt.sigR ?? 0.3, sigT = opt.sigT ?? 0.05, sigF = opt.sigF ?? 0.4;
+  const optDt = !!opt.optDt && frames.every((f) => f.hist), iF = optF ? 0 : -1, iX = optX ? (optF ? 1 : 0) : -1, iS = optS ? (optF ? 1 : 0) + (optX ? 6 : 0) : -1, iD = optDt ? (optF ? 1 : 0) + (optX ? 6 : 0) + (optS ? 6 : 0) : -1, np = (optF ? 1 : 0) + (optX ? 6 : 0) + (optS ? 6 : 0) + (optDt ? 1 : 0), dt0 = init.dt || 0;
+  if (!np) return { f: f0, X: X0, S: S0, dt: init.dt || 0, rms: 0, cost: 0 };
+  const unpack = (p) => ({ dt: iD >= 0 ? dt0 + p[iD] * 0.01 : dt0, f: iF >= 0 ? f0 * Math.exp(p[iF]) : f0, X: iX >= 0 ? { R: mul3(X0.R, expmap([p[iX], p[iX + 1], p[iX + 2]])), t: add(X0.t, [p[iX + 3], p[iX + 4], p[iX + 5]]) } : X0, S: iS >= 0 ? { R: mul3(expmap([p[iS], p[iS + 1], p[iS + 2]]), S0.R), t: add(S0.t, [p[iS + 3], p[iS + 4], p[iS + 5]]) } : S0 });
+  const huber = opt.huber ?? 3;
+  const resid = (p) => { const { f, X, S, dt } = unpack(p), r = []; for (const fr of frames) { const hd = fr.hist ? headAt(fr.hist, fr.t + dt) : fr.head; for (let k = 0; k < 4; k++) { const Pw = add(mv3(S.R, C[k]), S.t), uv = projectWorld(Pw, hd, X, f, cx, cy, opt.flipU, opt.wImg); if (!uv) { r.push(50, 50); continue; } let ex = uv[0] - fr.quad[k][0], ey = uv[1] - fr.quad[k][1]; const e = Math.hypot(ex, ey); if (e > huber) { const w = Math.sqrt(huber / e); ex *= w; ey *= w; } r.push(ex, ey); } }
+    const pxs = opt.priorPx ?? 1; if (iF >= 0) r.push((p[iF] / sigF) * pxs); if (iX >= 0) r.push((p[iX] / sigR) * pxs, (p[iX + 1] / sigR) * pxs, (p[iX + 2] / sigR) * pxs, (p[iX + 3] / sigT) * pxs, (p[iX + 4] / sigT) * pxs, (p[iX + 5] / sigT) * pxs); if (iD >= 0) r.push(((dt0 + p[iD] * 0.01) / 0.15) * pxs); return r; };
+  let p = new Array(np).fill(0), r = resid(p), cost = r.reduce((s, v) => s + v * v, 0), lam = 1e-3;
+  for (let it = 0; it < (opt.iters || 25); it++) {
+    const m = r.length, J = new Float64Array(m * np);
+    for (let j = 0; j < np; j++) { const e = j === iF ? 1e-5 : 1e-6, pp = p.slice(), pm = p.slice(); pp[j] += e; pm[j] -= e; const rp = resid(pp), rm = resid(pm); for (let i = 0; i < m; i++) J[i * np + j] = (rp[i] - rm[i]) / (2 * e); }
+    const JtJ = new Array(np * np).fill(0), Jtr = new Array(np).fill(0);
+    for (let i = 0; i < m; i++) { for (let a = 0; a < np; a++) { const ja = J[i * np + a]; if (!ja) continue; Jtr[a] += ja * r[i]; for (let b = a; b < np; b++) JtJ[a * np + b] += ja * J[i * np + b]; } }
+    for (let a = 0; a < np; a++) for (let b = 0; b < a; b++) JtJ[a * np + b] = JtJ[b * np + a];
+    let improved = false;
+    for (let tries = 0; tries < 8; tries++) { const A = JtJ.slice(); for (let a = 0; a < np; a++) A[a * np + a] = A[a * np + a] * (1 + lam) + 1e-12; const d = solve(A, Jtr.map((v) => -v), np); if (!d) { lam *= 10; continue; } const pn = p.map((v, i) => v + d[i]), rn = resid(pn), cn = rn.reduce((s, v) => s + v * v, 0);
+      if (cn < cost) { p = pn; r = rn; const rel = (cost - cn) / cost; cost = cn; lam = Math.max(1e-7, lam / 3); improved = true; if (rel < 1e-7) it = 1e9; break; } lam *= 6; }
+    if (!improved) break;
+  }
+  const out = unpack(p), nObs = frames.length * 8; let se = 0; for (let i = 0; i < nObs; i++) se += r[i] * r[i];
+  return { ...out, rms: Math.sqrt(se / Math.max(1, nObs)), cost };
+}
+// how different the head orientations are (degrees) across the frames: the camera needs some to self-calibrate
+function motionSpread(frames) { let mx = 0; for (let i = 0; i < frames.length; i += 2) for (let j = i + 1; j < frames.length; j += 2) { const d = nrm(logmap(mul3(tr3(frames[i].head.R), frames[j].head.R))) * 180 / Math.PI; if (d > mx) mx = d; } return mx; }
+
+return { add, bundleAdjust, cross, detectSheet, dot, expmap, focalFromH, headAt, homography, logmap, motionSpread, mul3, mv3, nrm, planarPose, poseFromQuad, projectCV, projectWorld, quatToR, rToQuat, scl, sheetCorners, sheetWorldFromCam, sub, tr3 };
+})();
 // ================= mixed reality (Meta Quest passthrough): the image lies on the real cartolina so you can draw over it
 // Flow: mark the four corners of the real sheet (controller tip + trigger, or fingertip held still), the image is laid on it at true size,
 // anchored to the room. Hands (and, with the Quest depth sensor, the pencil and arm) show in front of the image.
@@ -606,6 +777,11 @@ const loadThree = () => (threeP ||= import('three').then((m) => (T = m)));
 btn.addEventListener('click', async () => {
   if (!xrOK) { C.toast('Abra este link no navegador do Meta Quest para desenhar com realidade mista.'); return; }
   if (R && R.session) return;
+  // the first time, ask for the headset camera here in the page (it scans the sheet), then a second tap opens the mixed reality
+  if (!CAM.stream && !CAM.asked && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    CAM.asked = true; let perm = 'prompt'; try { perm = (await navigator.permissions.query({ name: 'camera' })).state; } catch {}
+    if (perm === 'prompt') { const ok = await startCamera(); C.toast(ok ? 'Câmera liberada! Toque de novo em Realidade mista.' : 'Sem a câmera, você marca os cantos da folha com o controle.'); if (ok) return; }
+  }
   try { await enterMR(); } catch (e) { console.error(e); C.toast('A realidade mista não abriu: ' + (e && (e.message || e.name))); }
 });
 
@@ -624,8 +800,11 @@ async function enterMR() {
   R.session = session; M.anchorHandle = null; M.grid = C.S.grid; M.adjust = false; M.menu = true; M.anchor = null; M.anchorTried = false; M.depthMesh = null; M.hasDepth = false;
   const saved = C.store.get(SAVE_KEY, null);
   M.restoreHandle = saved && saved.handle && session.restorePersistentAnchor ? saved.handle : null;
-  M.state = M.restoreHandle ? 'restore' : 'calib'; M.corners = []; M.sheet = null; M.fine = saved && saved.fine ? saved.fine : { dx: 0, dy: 0, rot: 0, s: 1 };
-  session.addEventListener('end', () => { R.renderer.setAnimationLoop(null); R.session = null; M.state = 'idle'; R.sheet.visible = false; clearMarks(); C.toast('Você saiu da realidade mista'); });
+  M.corners = []; M.sheet = null; M.fine = saved && saved.fine ? saved.fine : { dx: 0, dy: 0, rot: 0, s: 1 };
+  const camOK = await startCamera();
+  M.state = M.restoreHandle ? 'restore' : camOK ? 'scan' : 'calib'; if (M.state === 'scan') resetScan(); calFrames.length = 0;
+  if (!camOK) flash('Não consegui usar a câmera do Quest. Marque os cantos da folha.', 5000);
+  session.addEventListener('end', () => { R.renderer.setAnimationLoop(null); R.session = null; M.state = 'idle'; HH.length = 0; R.sheet.visible = false; clearMarks(); C.toast('Você saiu da realidade mista'); });
   await R.renderer.xr.setSession(session);
   R.renderer.xr.setFoveation(0.15);
   R.placePanelNow = true; drawPanel(); R.renderer.setAnimationLoop(loop);
@@ -692,25 +871,38 @@ function drawPanel() {
   const button = (id, label, x, y, w, h, on) => { const hov = R.inputs.some((s) => s.hover === id); g.fillStyle = on ? '#f3b51d' : hov ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.09)'; rr(g, x, y, w, h, 22); g.fill(); if (hov) { g.strokeStyle = '#fff'; g.lineWidth = 4; rr(g, x, y, w, h, 22); g.stroke(); } let fs = 34; g.font = `700 ${fs}px Figtree, system-ui, sans-serif`; while (fs > 20 && g.measureText(label).width > w - 22) { fs -= 2; g.font = `700 ${fs}px Figtree, system-ui, sans-serif`; } g.fillStyle = on ? '#231a02' : '#f2f7f5'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(label, x + w / 2, y + h / 2 + 2); B.push({ id, x, y, w, h }); };
   text('Cartolina', 44, 74, 46); text('realidade mista', 270, 74, 30, '#3fe0c8', 600);
   if (M.state === 'restore') {
-    wrap('Achei a cartolina da última vez. Se ela continua no mesmo lugar, é só usar.', 44, 140, 34, 930, '#dfeae6');
-    button('useSaved', 'Usar esse lugar', 44, 420, 452, 110, true); button('recal', 'Marcar cantos', 528, 420, 452, 110);
+    wrap('Achei a folha da última vez. Se ela continua no mesmo lugar, é só usar.', 44, 140, 34, 930, '#dfeae6');
+    button('useSaved', 'Usar esse lugar', 44, 420, 452, 110, true); button('recal', CAM.video ? 'Escanear de novo' : 'Marcar cantos', 528, 420, 452, 110);
+  } else if (M.state === 'scan') {
+    const calibrated = isCalibrated(), n = SC.frames.length, need = 12, pr = Math.min(1, n / need);
+    text(SC.est ? 'Achei a folha! Segure um pouquinho…' : `Procurando a ${C.sheetName()}…`, 44, 140, 38, '#f3b51d');
+    let y = wrap('Olhe para a folha inteira em cima da mesa. Ela precisa aparecer toda na imagem ao lado.', 44, 196, 30, 560);
+    if (!calibrated) y = wrap('Primeira vez? Para ficar perfeito, toque em Marcar cantos uma vez: a câmera fica calibrada para sempre.', 44, y + 4, 25, 560, '#8fa8a0');
+    if (SC.msg) y = wrap(SC.msg.startsWith('A folha') ? SC.msg + ' Confira o tamanho na aba Folha.' : SC.msg, 44, y + 4, 26, 560, '#ffcf6b');
+    g.fillStyle = 'rgba(255,255,255,.12)'; rr(g, 44, 420, 560, 22, 11); g.fill(); g.fillStyle = '#4ee08a'; rr(g, 44, 420, Math.max(22, 560 * pr), 22, 11); g.fill();
+    text(`${n} de ${need} vistas${calibrated ? ' · câmera calibrada' : ''}`, 44, 476, 24, '#8fa8a0', 500);
+    // what the camera sees, with the sheet outline
+    if (CAM.canvas && CAM.w) { const pw = 330, ph = Math.round(pw * CAM.h / CAM.w), px = 650, py = 120; g.drawImage(CAM.canvas, px, py, pw, ph); g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 2; g.strokeRect(px, py, pw, ph);
+      const d = CAM.lastDet; if (d) { g.strokeStyle = '#4ee08a'; g.lineWidth = 5; g.beginPath(); d.quad.forEach(([u, v], k) => { const X = px + (u * pw) / CAM.w, Y = py + (v * ph) / CAM.h; k ? g.lineTo(X, Y) : g.moveTo(X, Y); }); g.closePath(); g.stroke(); }
+      text('o que a câmera vê', px, py + ph + 30, 22, '#8fa8a0', 500); }
+    button('manual', 'Marcar cantos à mão', 44, 512, 330, 90); button('exit', 'Sair', 392, 512, 200, 90);
   } else if (M.state === 'calib' || M.state === 'restoring') {
     const n = M.corners.length;
-    text(M.state === 'restoring' ? 'Procurando a cartolina…' : `Canto ${Math.min(4, n + 1)} de 4`, 44, 148, 40, '#f3b51d');
-    let y = wrap('Encoste a bolinha azul num canto da cartolina e aperte o gatilho. Com a mão: aponte com o indicador, encoste a ponta no canto e segure parado até o anel fechar.', 44, 204, 31, 600);
-    wrap('Pode marcar os cantos em qualquer ordem.', 44, y + 6, 27, 600, '#8fa8a0');
+    text(M.state === 'restoring' ? 'Procurando a folha…' : `Canto ${Math.min(4, n + 1)} de 4`, 44, 148, 40, '#f3b51d');
+    let y = wrap('Encoste a bolinha azul num canto da folha e aperte o gatilho. Com a mão: aponte com o indicador, encoste a ponta no canto e segure parado até o anel fechar.', 44, 204, 31, 600);
+    wrap(CAM.video ? 'Em qualquer ordem. Olhe para a folha enquanto marca: assim a câmera também fica calibrada.' : 'Pode marcar os cantos em qualquer ordem.', 44, y + 6, 27, 600, '#8fa8a0');
     // little sheet diagram with the marked corners
     const dx = 700, dy = 150, dw = 260, dh = 320; g.fillStyle = 'rgba(255,255,255,.1)'; g.fillRect(dx, dy, dw, dh); g.strokeStyle = '#3fe0c8'; g.lineWidth = 4; g.setLineDash([14, 10]); g.strokeRect(dx, dy, dw, dh); g.setLineDash([]);
     [[dx, dy], [dx + dw, dy], [dx + dw, dy + dh], [dx, dy + dh]].forEach(([x, y2], k) => { g.beginPath(); g.arc(x, y2, 18, 0, 7); g.fillStyle = k < n ? '#4ee08a' : 'rgba(255,255,255,.25)'; g.fill(); });
-    button('undo', 'Desfazer canto', 44, 500, 300, 96); button('restart', 'Recomeçar', 362, 500, 300, 96); button('exit', 'Sair', 680, 500, 300, 96);
+    button('undo', 'Desfazer canto', 44, 500, 300, 96); button(CAM.video ? 'rescan' : 'restart', CAM.video ? 'Escanear' : 'Recomeçar', 362, 500, 300, 96); button('exit', 'Sair', 680, 500, 300, 96);
   } else if (M.state === 'trace') {
-    const sh = M.sheet, info = sh ? `${C.name()} · folha medida ${fmt(sh.W * 100)} × ${fmt(sh.H * 100)} cm` : '';
+    const sh = M.sheet, info = sh ? `${C.name()} · folha de ${fmt(sh.W * 100)} × ${fmt(sh.H * 100)} cm${M.fromScan ? ' (escaneada)' : ''}` : '';
     text(info, 44, 128, 27, '#c3d2cd', 500);
     text(`Transparência ${Math.round(M.opacity * 100)}%${M.anchor ? ' · presa no lugar' : ''}${M.occl ? (M.hasDepth ? ' · mãos e lápis na frente' : ' · mãos na frente') : ''}`, 44, 168, 27, '#8fa8a0', 500);
     if (!M.adjust) {
       button('img', M.showImg ? 'Imagem ligada' : 'Imagem desligada', 44, 206, 222, 116, M.showImg); button('grid', 'Grade', 282, 206, 222, 116, M.grid); button('lighter', 'Mais clara', 520, 206, 222, 116); button('stronger', 'Mais forte', 758, 206, 222, 116);
-      button('adjust', 'Ajuste fino', 44, 338, 222, 116); button('occl', 'Mãos na frente', 282, 338, 222, 116, M.occl); button('recal', 'Marcar cantos', 520, 338, 222, 116); button('hide', 'Esconder menu', 758, 338, 222, 116);
-      button('exit', 'Sair', 44, 470, 222, 96); button('rotate', 'Girar imagem', 282, 470, 222, 96); wrap('Botão A liga e desliga a imagem. B mostra o menu. Alavanca direita: transparência.', 520, 506, 25, 460, '#8fa8a0', 1.25);
+      button('adjust', 'Ajuste fino', 44, 338, 222, 116); button('occl', 'Mãos na frente', 282, 338, 222, 116, M.occl); button(CAM.video ? 'rescan' : 'recal', CAM.video ? 'Escanear de novo' : 'Marcar cantos', 520, 338, 222, 116); button('hide', 'Esconder menu', 758, 338, 222, 116);
+      button('exit', 'Sair', 44, 470, 222, 96); button('rotate', 'Girar imagem', 282, 470, 222, 96); button('manual', 'Marcar cantos', 520, 470, 222, 96); wrap('A liga e desliga a imagem. B: menu. Alavanca direita: transparência.', 758, 498, 22, 222, '#8fa8a0', 1.2);
     } else {
       const s = 150, gap = 14, x0 = 44, y0 = 206;
       [['left', '◀'], ['right', '▶'], ['up', '▲'], ['down', '▼'], ['rotL', '↺'], ['rotR', '↻']].forEach(([id, l], k) => button(id, l, x0 + k * (s + gap), y0, s, 116));
@@ -736,7 +928,7 @@ function press(id) {
   const f = M.fine;
   switch (id) {
     case 'useSaved': M.state = 'restoring'; drawPanel(); restoreAnchor(); break;
-    case 'recal': startCalib(); break;
+    case 'recal': CAM.video ? startScan() : startCalib(); break;
     case 'undo': M.corners.pop(); rebuildMarks(); drawPanel(); break;
     case 'restart': startCalib(); break;
     case 'exit': R.session && R.session.end(); break;
@@ -746,7 +938,9 @@ function press(id) {
     case 'lighter': M.opacity = Math.max(0.1, Math.round((M.opacity - 0.1) * 10) / 10); applyLook(); break;
     case 'stronger': M.opacity = Math.min(1, Math.round((M.opacity + 0.1) * 10) / 10); applyLook(); break;
     case 'adjust': M.adjust = true; drawPanel(); break;
-    case 'done': M.adjust = false; saveCal(); drawPanel(); break;
+    case 'done': M.adjust = false; learnFromAdjust(); saveCal(); drawPanel(); break;
+    case 'rescan': startScan(); break;
+    case 'manual': startCalib(); break;
     case 'occl': M.occl = !M.occl; drawPanel(); break;
     case 'hide': M.menu = false; drawPanel(); break;
     case 'menu': M.menu = true; drawPanel(); break;
@@ -757,7 +951,8 @@ function press(id) {
   }
   if (['left', 'right', 'up', 'down', 'rotL', 'rotR', 'smaller', 'bigger', 'reset'].includes(id)) { placeSheet(); drawPanel(); }
 }
-function startCalib() { M.anchorHandle = null; M.state = 'calib'; M.corners = []; M.sheet = null; M.adjust = false; M.menu = true; R.sheet.visible = false; if (M.anchor) { try { M.anchor.delete(); } catch {} } M.anchor = null; M.anchorTried = false; M.fine = { dx: 0, dy: 0, rot: 0, s: 1 }; clearMarks(); R.placePanelNow = true; drawPanel(); }
+function startScan() { if (!CAM.video) { startCalib(); return; } M.anchorHandle = null; if (M.anchor) { try { M.anchor.delete(); } catch {} } M.anchor = null; M.anchorTried = false; M.adjust = false; M.menu = true; M.state = 'scan'; M.fine = { dx: 0, dy: 0, rot: 0, s: 1 }; clearMarks(); resetScan(); R.placePanelNow = true; drawPanel(); }
+function startCalib() { calFrames.length = 0; M.anchorHandle = null; M.state = 'calib'; M.corners = []; M.sheet = null; M.adjust = false; M.menu = true; R.sheet.visible = false; if (M.anchor) { try { M.anchor.delete(); } catch {} } M.anchor = null; M.anchorTried = false; M.fine = { dx: 0, dy: 0, rot: 0, s: 1 }; clearMarks(); R.placePanelNow = true; drawPanel(); }
 function capture(p, radius, st) {
   if (M.corners.some((c) => c.p.distanceTo(p) < 0.06)) { flash('Esse canto já foi marcado'); return; }
   M.corners.push({ p, r: radius }); M.lastCap = performance.now(); hapt(st, 0.8, 70); rebuildMarks();
@@ -794,8 +989,9 @@ function finishCalib() {
   const P = M.corners.map((c) => c.p.clone()), rad = M.corners.reduce((s, c) => s + c.r, 0) / 4;
   const sh = fitSheet(P, R.head); if (rad > 0) sh.pos.addScaledVector(sh.n, -rad * 0.85); // fingertip joints sit a little above the paper
   if (sh.W < 0.08 || sh.H < 0.08) { flash('Os cantos ficaram muito perto. Vamos marcar de novo.'); M.corners = []; clearMarks(); drawPanel(); return; }
-  M.sheet = sh; M.state = 'trace'; M.anchor = null; M.anchorTried = false; M.fine = { dx: 0, dy: 0, rot: 0, s: 1 };
+  M.sheet = sh; M.state = 'trace'; M.fromScan = false; M.anchor = null; M.anchorTried = false; M.fine = { dx: 0, dy: 0, rot: 0, s: 1 };
   redrawOverlay(); placeSheet(); R.sheet.visible = true; clearMarks(); R.placePanelNow = true; drawPanel();
+  if (CAM.video && calibrateFromManual(sh)) { flash('Câmera calibrada! Da próxima vez é só olhar para a folha.', 4500); calFrames.length = 0; return; }
   if (sh.err > 0.015) flash(`Um canto ficou ${fmt(sh.err * 100)} cm torto. Para ficar perfeito, toque em Marcar cantos.`, 6000); else flash(`Pronto! Folha de ${fmt(sh.W * 100)} × ${fmt(sh.H * 100)} cm`);
 }
 function redrawOverlay() { if (!M.sheet) return; C.drawOverlay(R.ovCanvas, M.sheet.W > M.sheet.H, M.sheet.W * 100, M.sheet.H * 100, M.grid); R.ovTex.dispose(); R.ovTex.needsUpdate = true; applyLook(); }
@@ -861,6 +1057,100 @@ function updateOccluders() {
   }
 }
 
+// ---------- the headset camera: finds the sheet by itself (and learns the camera's exact place on the headset)
+const CAM = { stream: null, video: null, canvas: null, ctx: null, w: 480, h: 360, frameT: 0, rvfcSeen: false, lastProc: 0, lastDet: null, asked: false, label: '', procMs: 0, seen: 0, found: 0 };
+const HH = []; // head poses of the last second: { t (s), R (row-major), p }
+const calFrames = []; // camera frames seen while you mark the corners by hand (to calibrate the camera)
+const SC = { frames: [], est: null, W: 0, H: 0, t0: 0, n: 0, done: false, msg: '', headR: null };
+const DEF_CAL = { fn: 0.78, X: { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [-0.032, -0.012, -0.075] }, dt: 0, src: 'default' };
+const camCal = () => { const c = C.store.get('cam', null); return c && c.X && c.fn ? c : DEF_CAL; }, isCalibrated = () => camCal().src !== 'default';
+async function startCamera() {
+  if (CAM.stream && CAM.stream.active) return true; if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  try {
+    let cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+    if (!cams.some((d) => d.label)) { const s0 = await navigator.mediaDevices.getUserMedia({ video: true }); s0.getTracks().forEach((t) => t.stop()); cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput'); }
+    if (!cams.length) return false;
+    const back = cams.filter((d) => /back|trás|traseira|rear/i.test(d.label)), pick = back.find((d) => /\b1\b/.test(d.label.replace(/[^0-9 ]/g, ' '))) || back[0] || cams[0];
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: pick.deviceId }, width: { ideal: 1280 }, height: { ideal: 960 }, frameRate: { ideal: 30 } }, audio: false });
+    const v = CAM.video || document.createElement('video'); v.muted = true; v.playsInline = true; v.autoplay = true; v.srcObject = stream; v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+    if (!v.isConnected) document.body.appendChild(v); try { await v.play(); } catch {}
+    CAM.stream = stream; CAM.video = v; CAM.label = pick.label || ''; if (!CAM.canvas) { CAM.canvas = document.createElement('canvas'); CAM.ctx = CAM.canvas.getContext('2d', { willReadFrequently: true }); }
+    if (v.requestVideoFrameCallback) { const cb = (now, md) => { CAM.frameT = (md && (md.captureTime || md.expectedDisplayTime)) || now; CAM.rvfcSeen = true; v.requestVideoFrameCallback(cb); }; v.requestVideoFrameCallback(cb); }
+    return true;
+  } catch (e) { console.warn('camera', e); return false; }
+}
+function camFrame(nowMs) {
+  const v = CAM.video; if (!v || v.readyState < 2 || !v.videoWidth) return null;
+  if (CAM.vw !== v.videoWidth || CAM.vh !== v.videoHeight) { CAM.vw = v.videoWidth; CAM.vh = v.videoHeight; CAM.w = 480; CAM.h = Math.round((480 * CAM.vh) / CAM.vw); CAM.canvas.width = CAM.w; CAM.canvas.height = CAM.h; }
+  const t0 = performance.now(), tCap = (CAM.rvfcSeen && nowMs - CAM.frameT < 250 ? CAM.frameT : nowMs - 40) / 1000;
+  CAM.ctx.drawImage(v, 0, 0, CAM.w, CAM.h); const id = CAM.ctx.getImageData(0, 0, CAM.w, CAM.h);
+  const det = V.detectSheet(id.data, CAM.w, CAM.h); CAM.procMs = performance.now() - t0; CAM.seen++; CAM.lastDet = det; if (det) CAM.found++;
+  if (!det) return null; const hist = HH.filter((h) => h.t > tCap - 0.3 && h.t < tCap + 0.12); if (hist.length < 2) return null;
+  // how fast the head was turning around that moment (fast turns blur the timing between camera and head)
+  const a = V.headAt(hist, tCap - 0.05), b = V.headAt(hist, tCap + 0.05), speed = a && b ? (V.nrm(V.logmap(V.mul3(V.tr3(a.R), b.R))) * 180) / Math.PI / 0.1 : 0;
+  return { t: tCap, hist, quad: det.quad, speed };
+}
+const sheetM = () => { const [a, b] = C.sheetSize(); return [a / 100, b / 100]; };
+function resetScan() { SC.frames = []; SC.est = null; SC.t0 = performance.now(); SC.n = 0; SC.done = false; SC.msg = ''; R && (R.sheet.visible = false); }
+// pick the corner order that best matches where the current estimate says the corners are
+function matchQuad(fr, est, W, H, cx, cy) {
+  const hd = V.headAt(fr.hist, fr.t + (est.dt || 0)); if (!hd) return null; const C4 = V.sheetCorners(W, H).map(([x, y]) => V.add(V.mv3(est.S.R, [x, y, 0]), est.S.t)); const pred = C4.map((P) => V.projectWorld(P, hd, est.X, est.f, cx, cy)); if (pred.some((q) => !q)) return null;
+  let bs = 0, be = 1e18; for (let sh = 0; sh < 4; sh++) { let e = 0; for (let k = 0; k < 4; k++) { const q = fr.quad[(k + sh) % 4]; e += (q[0] - pred[k][0]) ** 2 + (q[1] - pred[k][1]) ** 2; } if (e < be) { be = e; bs = sh; } }
+  return { quad: [0, 1, 2, 3].map((k) => fr.quad[(k + bs) % 4]), err: Math.sqrt(be / 4) };
+}
+function scanStep(fr) {
+  if (fr.speed > 30) { SC.msg = 'Mexa a cabeça mais devagar.'; return; } if (SC.msg === 'Mexa a cabeça mais devagar.') SC.msg = '';
+  const cal = camCal(), calibrated = isCalibrated(), cx = CAM.w / 2, cy = CAM.h / 2, [W0, H0] = sheetM();
+  if (!SC.est) {
+    const f = cal.fn * CAM.w, p = V.poseFromQuad(fr.quad, W0, H0, f, cx, cy); if (!p || p.err > (calibrated ? 0.12 : 0.3)) { SC.msg = 'A folha não parece ' + C.sheetName() + '.'; return; }
+    const hd = V.headAt(fr.hist, fr.t + cal.dt); SC.W = p.W; SC.H = p.H; SC.est = { f, X: cal.X, dt: cal.dt, S: V.sheetWorldFromCam(p, hd, cal.X) };
+    SC.frames.push({ hist: fr.hist, t: fr.t, quad: p.img }); return;
+  }
+  const m = matchQuad(fr, SC.est, SC.W, SC.H, cx, cy); if (!m || m.err > 30) return; // an odd detection: skip it
+  SC.frames.push({ hist: fr.hist, t: fr.t, quad: m.quad }); if (SC.frames.length > 60) SC.frames.shift(); SC.n++;
+  if (SC.n % 4 === 0 || SC.frames.length < 8) {
+    const fr2 = SC.frames.map((F) => { const mm = matchQuad(F, SC.est, SC.W, SC.H, cx, cy); return mm ? { hist: F.hist, t: F.t, quad: mm.quad } : null; }).filter(Boolean);
+    // the sheet pose (and, until the camera is calibrated, its focal length); the camera's place on the headset comes from the calibration
+    SC.est = V.bundleAdjust(fr2, SC.est, { W: SC.W, H: SC.H, cx, cy, optX: false, optDt: false, optF: !calibrated, sigF: 0.15, iters: 12 });
+    showScanPose();
+  }
+  const spread = V.motionSpread(SC.frames.map((F) => ({ head: V.headAt(F.hist, F.t) }))), el = (performance.now() - SC.t0) / 1000;
+  SC.spread = spread; const rmsOK = SC.est.rms < 3;
+  if ((SC.frames.length >= 12 && rmsOK) || (el > 12 && SC.frames.length >= 4)) finishScan(calibrated, spread);
+}
+function poseToSheet(S, W, H) {
+  // the paper's normal must face you; its top is the edge farther from you (or the higher one on a wall)
+  let Rm = S.R.slice(); const col = (k) => [Rm[k], Rm[3 + k], Rm[6 + k]], c = S.t, toHead = V.sub([R.head.x, R.head.y, R.head.z], c);
+  if (V.dot(col(2), toHead) < 0) Rm = V.mul3(Rm, [1, 0, 0, 0, -1, 0, 0, 0, -1]);
+  const n = col(2), y = col(1), away = Math.abs(n[1]) > 0.6 ? V.scl(toHead, -1) : [0, 1, 0]; if (V.dot(y, away) < 0) Rm = V.mul3(Rm, [-1, 0, 0, 0, -1, 0, 0, 0, 1]);
+  const m4 = new T.Matrix4().set(Rm[0], Rm[1], Rm[2], 0, Rm[3], Rm[4], Rm[5], 0, Rm[6], Rm[7], Rm[8], 0, 0, 0, 0, 1), q = new T.Quaternion().setFromRotationMatrix(m4);
+  return { pos: new T.Vector3(c[0], c[1], c[2]), quat: q, W, H, n: new T.Vector3(Rm[2], Rm[5], Rm[8]), err: 0 };
+}
+function showScanPose() { if (!SC.est) return; M.sheet = poseToSheet(SC.est.S, SC.W, SC.H); M.fine = { dx: 0, dy: 0, rot: 0, s: 1 }; redrawOverlay(); placeSheet(); R.sheet.visible = true; }
+function finishScan(calibrated, spread) {
+  if (!SC.est) return; SC.done = true; const est = SC.est;
+  if (!calibrated && SC.frames.length >= 12 && est.rms < 3) { const c = camCal(); C.store.set('cam', { ...c, fn: est.f / CAM.w, src: 'default', fOnly: true }); }
+  M.fromScan = true; SC.headR = R.headQ.clone();
+  M.sheet = poseToSheet(est.S, SC.W, SC.H); M.state = 'trace'; M.anchor = null; M.anchorTried = false; M.fine = { dx: 0, dy: 0, rot: 0, s: 1 };
+  redrawOverlay(); placeSheet(); R.sheet.visible = true; R.placePanelNow = true; drawPanel();
+  flash(calibrated ? `Achei a ${C.sheetName()}! ${fmt(M.sheet.W * 100)} × ${fmt(M.sheet.H * 100)} cm` : 'Achei a folha! Se ficou um pouco fora, toque em Ajuste fino ou Marcar cantos uma vez: o app aprende a câmera.', calibrated ? 3000 : 7000);
+}
+// after you mark the corners by hand, the camera frames seen meanwhile calibrate the camera precisely
+function calibrateFromManual(sheet) {
+  if (calFrames.length < 8) return false; const cx = CAM.w / 2, cy = CAM.h / 2, cal = camCal();
+  const m = new T.Matrix4().makeRotationFromQuaternion(sheet.quat).elements, Rs = [m[0], m[4], m[8], m[1], m[5], m[9], m[2], m[6], m[10]];
+  const S = { R: Rs, t: [sheet.pos.x, sheet.pos.y, sheet.pos.z] }; let est = { f: cal.fn * CAM.w, X: cal.X, dt: cal.dt, S };
+  for (let pass = 0; pass < 3; pass++) { const fr2 = calFrames.map((F) => { const mm = matchQuad(F, est, sheet.W, sheet.H, cx, cy); return mm && mm.err < 60 ? { hist: F.hist, t: F.t, quad: mm.quad } : null; }).filter(Boolean); if (fr2.length < 8) return false; est = V.bundleAdjust(fr2, est, { W: sheet.W, H: sheet.H, cx, cy, fixedS: S, optX: true, optF: true, optDt: true, sigT: 0.05, sigR: 0.3, iters: 20 }); }
+  const ang = V.nrm(V.logmap(V.mul3(V.tr3(DEF_CAL.X.R), est.X.R))) * 180 / Math.PI, off = V.nrm(V.sub(est.X.t, DEF_CAL.X.t)), fr = est.f / (DEF_CAL.fn * CAM.w);
+  if (est.rms > 2.5 || ang > 25 || off > 0.06 || Math.abs(est.dt) > 0.3 || fr < 0.6 || fr > 1.6) { console.warn('calibration rejected', { rms: est.rms, ang, off, dt: est.dt, fr }); return false; }
+  C.store.set('cam', { fn: est.f / CAM.w, X: est.X, dt: est.dt, src: 'manual', rms: est.rms }); return true;
+}
+// a fine adjustment after a scan teaches the app where the camera really is
+function learnFromAdjust() {
+  if (!M.fromScan || !M.sheet || !SC.headR) return; const f = M.fine; if (Math.hypot(f.dx, f.dy) < 0.0015) return; const cal = camCal(); if (!cal) return;
+  const xe = new T.Vector3(1, 0, 0).applyQuaternion(M.sheet.quat), ye = new T.Vector3(0, 1, 0).applyQuaternion(M.sheet.quat), cw = xe.multiplyScalar(f.dx).add(ye.multiplyScalar(f.dy)), ch = cw.applyQuaternion(SC.headR.clone().invert());
+  C.store.set('cam', { ...cal, X: { R: cal.X.R, t: [cal.X.t[0] + ch.x, cal.X.t[1] + ch.y, cal.X.t[2] + ch.z] }, src: cal.src === 'default' ? 'adjust' : cal.src });
+}
 // pointing with the index finger (the other fingers closed): only then does a still fingertip mark a corner
 function pointRatios(J) {
   const w = J && J['wrist'], f = (n) => J[n]; if (!w || !w.visible) return null;
@@ -874,7 +1164,10 @@ let lastT = 0;
 function loop(time, frame) {
   const dt = Math.min(0.05, (time - lastT) / 1000 || 0.016); lastT = time; if (!frame) return;
   const ref = R.renderer.xr.getReferenceSpace(), vp = frame.getViewerPose(ref);
-  if (vp) { const p = vp.transform.position, o = vp.transform.orientation; R.head.set(p.x, p.y, p.z); R.headQ.set(o.x, o.y, o.z, o.w); }
+  if (vp) { const p = vp.transform.position, o = vp.transform.orientation; R.head.set(p.x, p.y, p.z); R.headQ.set(o.x, o.y, o.z, o.w); HH.push({ t: performance.now() / 1000, R: V.quatToR([o.x, o.y, o.z, o.w]), p: [p.x, p.y, p.z] }); while (HH.length && HH[HH.length - 1].t - HH[0].t > 1.2) HH.shift(); }
+  // camera: look for the sheet (scanning, or while you mark corners by hand)
+  const nowMs = performance.now();
+  if (CAM.video && (M.state === 'scan' || M.state === 'calib') && nowMs - CAM.lastProc > 80) { CAM.lastProc = nowMs; const fr = camFrame(nowMs); if (fr) { if (M.state === 'scan') scanStep(fr); else { calFrames.push(fr); if (calFrames.length > 80) calFrames.shift(); } } if (M.state === 'scan' && nowMs - (R.lastPanelT || 0) > 250) { R.lastPanelT = nowMs; drawPanel(); } }
   // anchor-driven pose
   if (M.state === 'trace' && M.sheet) {
     if (!M.anchor && !M.anchorTried) makeAnchor(frame, ref);
@@ -945,6 +1238,6 @@ function placePanel(dt) {
   P.lookAt(R.head); R.pill.position.copy(P.position); R.pill.quaternion.copy(P.quaternion);
 }
 
-window.__mr = { M, get R() { return R; }, get T() { return T; }, pointRatios: (J) => pointRatios(J), press: (id) => press(id), fitSheet: (...a) => fitSheet(...a) };
+window.__mr = { M, CAM, SC, V, get R() { return R; }, get T() { return T; }, pointRatios: (J) => pointRatios(J), press: (id) => press(id), fitSheet: (...a) => fitSheet(...a) };
 
 </script></body></html>
