@@ -12,7 +12,7 @@ env:
 
 jobs:
   imagem:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
       - name: Ferramentas
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support parted zerofree xz-utils
+          sudo apt-get install -y parted zerofree xz-utils psmisc
 
       - name: Baixar Raspberry Pi OS Lite
         run: |
