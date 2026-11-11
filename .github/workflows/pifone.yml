@@ -1,0 +1,92 @@
+name: Montar imagem PiFone
+
+on:
+  push:
+    branches: [pifone]
+
+permissions:
+  contents: write
+
+env:
+  BASE_URL: https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2025-05-13/2025-05-13-raspios-bookworm-arm64-lite.img.xz
+
+jobs:
+  imagem:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ferramentas
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support parted zerofree xz-utils
+
+      - name: Baixar Raspberry Pi OS Lite
+        run: |
+          curl -fL --retry 3 -o base.img.xz "$BASE_URL"
+          xz -d base.img.xz
+          mv base.img pifone.img
+          ls -l pifone.img
+
+      - name: Abrir espaco e montar
+        run: |
+          truncate -s +1G pifone.img
+          sudo parted -s pifone.img resizepart 2 100%
+          LOOP=$(sudo losetup -fP --show pifone.img)
+          echo "LOOP=$LOOP" >> "$GITHUB_ENV"
+          sudo e2fsck -fy "${LOOP}p2" || true
+          sudo resize2fs "${LOOP}p2"
+          sudo mkdir -p /mnt/pi
+          sudo mount "${LOOP}p2" /mnt/pi
+          sudo mount "${LOOP}p1" /mnt/pi/boot/firmware
+          for d in dev dev/pts proc sys; do sudo mount --bind /$d /mnt/pi/$d; done
+          df -h /mnt/pi /mnt/pi/boot/firmware
+
+      - name: Instalar o PiFone dentro da imagem
+        run: |
+          sudo mkdir -p /mnt/pi/tmp/pifone
+          sudo cp pifone/* /mnt/pi/tmp/pifone/
+          sudo mv /mnt/pi/etc/resolv.conf /mnt/pi/etc/resolv.conf.pifone || true
+          sudo cp -L /etc/resolv.conf /mnt/pi/etc/resolv.conf
+          sudo chroot /mnt/pi /bin/bash /tmp/pifone/setup.sh
+          sudo rm -f /mnt/pi/etc/resolv.conf
+          sudo mv /mnt/pi/etc/resolv.conf.pifone /mnt/pi/etc/resolv.conf || true
+
+      - name: Conferir
+        run: |
+          set -x
+          test -x /mnt/pi/usr/local/bin/pifone
+          test -x /mnt/pi/usr/local/bin/pifone-particao
+          test -x /mnt/pi/usr/bin/bt-agent
+          test -x /mnt/pi/usr/bin/mpd
+          test -f /mnt/pi/boot/firmware/pifone.txt
+          ls -l /mnt/pi/etc/systemd/system/multi-user.target.wants/
+          cat /mnt/pi/etc/fstab
+          cat /mnt/pi/boot/firmware/cmdline.txt
+          ! grep -q 'init=' /mnt/pi/boot/firmware/cmdline.txt
+          sudo chroot /mnt/pi python3 -c "import evdev; print(evdev.__version__)"
+          sudo chroot /mnt/pi python3 -m py_compile /usr/local/bin/pifone
+          sudo chroot /mnt/pi sh -n /usr/local/bin/pifone-particao
+          df -h /mnt/pi
+
+      - name: Fechar e comprimir
+        run: |
+          sudo fuser -km /mnt/pi || true
+          sleep 2
+          for d in dev/pts dev proc sys boot/firmware; do sudo umount /mnt/pi/$d; done
+          sudo umount /mnt/pi
+          sudo zerofree "${LOOP}p2"
+          sudo losetup -d "$LOOP"
+          xz -T0 -6 pifone.img
+          ls -lh pifone.img.xz
+          sha256sum pifone.img.xz | tee pifone.img.xz.sha256
+
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "pifone-${{ github.run_number }}" pifone.img.xz pifone.img.xz.sha256 \
+            --target pifone \
+            --title "PiFone ${{ github.run_number }}" \
+            --notes "Imagem para Raspberry Pi Zero 2 W. Grave o arquivo pifone.img.xz no cartao com o Raspberry Pi Imager (Use custom), sem aplicar personalizacoes."

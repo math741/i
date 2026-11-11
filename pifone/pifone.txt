@@ -1,0 +1,8 @@
+# Configuracao do PiFone (so vale depois de desligar e ligar o Pi)
+
+# Tocar em ordem aleatoria? sim / nao
+ALEATORIO=nao
+
+# Opcional: endereco do seu fone (ex: AA:BB:CC:DD:EE:FF).
+# Se preencher, o Pi so conecta nesse fone e nunca procura outros.
+FONE_MAC=
