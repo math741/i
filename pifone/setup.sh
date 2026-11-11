@@ -51,8 +51,8 @@ audio_output {
     mixer_type  "software"
 }
 EOF
-systemctl disable mpd.socket 2>/dev/null || true
 systemctl enable mpd.service
+systemctl disable mpd.socket 2>/dev/null || true
 
 # ---- botoes do fone chegam pelo uinput
 echo uinput > /etc/modules-load.d/uinput.conf
@@ -114,6 +114,7 @@ ls /lib/systemd/system /usr/lib/systemd/system 2>/dev/null | grep -i -E 'blue|al
 for s in bluealsa.service bluez-alsa.service; do
     [ -e "/lib/systemd/system/$s" ] && systemctl enable "$s"
 done
+systemctl disable bluealsa-aplay.service triggerhappy.service 2>/dev/null || true
 systemctl enable bluetooth.service pifone-particao.service pifone-agent.service pifone.service
 
 # ---- o cartao nao deve ser todo ocupado pelo sistema: sobra vira MUSICAS

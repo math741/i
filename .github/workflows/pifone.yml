@@ -61,11 +61,12 @@ jobs:
           test -x /mnt/pi/usr/bin/bt-agent
           test -x /mnt/pi/usr/bin/mpd
           test -f /mnt/pi/boot/firmware/pifone.txt
-          ls -l /mnt/pi/etc/systemd/system/multi-user.target.wants/
+          ls /mnt/pi/etc/systemd/system/multi-user.target.wants/ /mnt/pi/etc/systemd/system/bluetooth.target.wants/
+          test -L /mnt/pi/etc/systemd/system/bluetooth.target.wants/bluealsa.service
           cat /mnt/pi/etc/fstab
           cat /mnt/pi/boot/firmware/cmdline.txt
           ! grep -q 'init=' /mnt/pi/boot/firmware/cmdline.txt
-          sudo chroot /mnt/pi python3 -c "import evdev; print(evdev.__version__)"
+          sudo chroot /mnt/pi python3 -c "from evdev import InputDevice, ecodes, list_devices; print(ecodes.KEY_PLAYCD, ecodes.KEY_NEXTSONG)"
           sudo chroot /mnt/pi python3 -m py_compile /usr/local/bin/pifone
           sudo chroot /mnt/pi sh -n /usr/local/bin/pifone-particao
           df -h /mnt/pi
