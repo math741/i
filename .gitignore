@@ -1,3 +1,7 @@
 mlg/.build/
 mlg/mlg_state.json
 __pycache__/
+forja/build/
+forja/tests/out/
+forja/run/
+forja/client/node_modules/

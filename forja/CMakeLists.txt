@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.20)
+project(forja CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
+
+# Mesmas restrições do Unreal Build Tool: sem exceções, sem RTTI, avisos de sombra como erro.
+if(MSVC)
+  set(FORJA_FLAGS /W4 /WX /GR- /EHs-c- /D_HAS_EXCEPTIONS=0)
+else()
+  set(FORJA_FLAGS -Wall -Wextra -Wshadow -Werror -fno-exceptions -fno-rtti)
+endif()
+
+file(GLOB FORJA_CORE_SRC core/forja/*.cpp)
+add_library(forja_core STATIC ${FORJA_CORE_SRC})
+target_include_directories(forja_core PUBLIC core)
+target_compile_options(forja_core PRIVATE ${FORJA_FLAGS})
+
+add_executable(forja_tests tests/core_tests.cpp)
+target_link_libraries(forja_tests forja_core)
+target_compile_options(forja_tests PRIVATE ${FORJA_FLAGS})
+
+if(NOT WIN32)
+  file(GLOB FORJA_SERVER_SRC server/*.cpp)
+  if(FORJA_SERVER_SRC)
+    add_executable(forja_server ${FORJA_SERVER_SRC})
+    target_link_libraries(forja_server forja_core)
+    target_compile_options(forja_server PRIVATE ${FORJA_FLAGS})
+  endif()
+endif()
+
+enable_testing()
+add_test(NAME core COMMAND forja_tests)
