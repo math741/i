@@ -1,5 +1,5 @@
 {
-  "escrita_em": "2026-11-18T17:56:14.559Z",
+  "escrita_em": "2026-11-18T18:00:22.085Z",
   "regras": [
     "Ao ativar → Passo r1 (executa Passo r1)",
     "Ao ativar → Vigia do canal (por 200 ms, vigia quando o autor cruza para água)",

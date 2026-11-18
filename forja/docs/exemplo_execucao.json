@@ -1,0 +1,469 @@
+{
+  "receita": "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120",
+  "cenario": "autor em (-600,-250) olhando +X; alvo em (-300,-160); comando em 600 ms",
+  "regras": [
+    "Ao ativar → Marca de saída (guarda a posição atual do autor)",
+    "Marca de saída: depois de marcar → Travessia r1 (executa Travessia r1)",
+    "Travessia r1: quando Travessia r1 terminar → Janela de volta (abre janela de 300 ms (ao pressionar o mesmo botão))",
+    "Janela de volta: se o comando vier na janela → Volta à marca (volta ao destino em 120 ms (até 10,00 m))",
+    "Volta à marca usa o ponto guardado por Marca de saída"
+  ],
+  "linha_do_tempo": [
+    {
+      "no": "n1",
+      "top": "n1",
+      "rotulo": "Marca de saída",
+      "fundamento": "Vetor",
+      "escopo": "raiz",
+      "tipo": "instante",
+      "ini": 0,
+      "fim": 0,
+      "ini_max": 0,
+      "fim_max": 0,
+      "manual": false,
+      "condicional": false,
+      "mult": 1
+    },
+    {
+      "no": "n2/n1/n1",
+      "top": "n2",
+      "rotulo": "Passo",
+      "fundamento": "Vetor",
+      "escopo": "Passo r1",
+      "tipo": "deslocamento",
+      "ini": 0,
+      "fim": 150,
+      "ini_max": 0,
+      "fim_max": 150,
+      "manual": false,
+      "condicional": false,
+      "mult": 1
+    },
+    {
+      "no": "n2/n2/n1",
+      "top": "n2",
+      "rotulo": "Pulso",
+      "fundamento": "Limiar",
+      "escopo": "Pulso r1",
+      "tipo": "preparo",
+      "ini": 150,
+      "fim": 350,
+      "ini_max": 150,
+      "fim_max": 350,
+      "manual": false,
+      "condicional": false,
+      "mult": 1
+    },
+    {
+      "no": "n2/n2/n1",
+      "top": "n2",
+      "rotulo": "Pulso",
+      "fundamento": "Limiar",
+      "escopo": "Pulso r1",
+      "tipo": "contato",
+      "ini": 350,
+      "fim": 450,
+      "ini_max": 350,
+      "fim_max": 450,
+      "manual": false,
+      "condicional": false,
+      "mult": 1
+    },
+    {
+      "no": "n3",
+      "top": "n3",
+      "rotulo": "Janela de volta",
+      "fundamento": "Cadência",
+      "escopo": "raiz",
+      "tipo": "janela",
+      "ini": 450,
+      "fim": 750,
+      "ini_max": 450,
+      "fim_max": 750,
+      "manual": false,
+      "condicional": false,
+      "mult": 1
+    },
+    {
+      "no": "n3",
+      "top": "n3",
+      "rotulo": "Janela de volta",
+      "fundamento": "Cadência",
+      "escopo": "raiz",
+      "tipo": "confirmacao",
+      "ini": 750,
+      "fim": 870,
+      "ini_max": 750,
+      "fim_max": 870,
+      "manual": false,
+      "condicional": false,
+      "mult": 1
+    },
+    {
+      "no": "n4",
+      "top": "n4",
+      "rotulo": "Volta à marca",
+      "fundamento": "Vetor",
+      "escopo": "raiz",
+      "tipo": "deslocamento",
+      "ini": 450,
+      "fim": 570,
+      "ini_max": 870,
+      "fim_max": 990,
+      "manual": true,
+      "condicional": true,
+      "mult": 1
+    }
+  ],
+  "custo_computacional": {
+    "pico_trabalho": 8,
+    "limite_trabalho": 64,
+    "pico_em_ms": 350,
+    "responsaveis_pico": [
+      "n2/n2/n1"
+    ],
+    "pico_areas": 1,
+    "limite_areas": 4,
+    "ativacoes": 12,
+    "limite_ativacoes": 128,
+    "eventos": 14,
+    "limite_eventos": 512,
+    "duracao_ms": 990,
+    "limite_duracao_ms": 8000,
+    "memoria_bytes": 224,
+    "limite_memoria": 16384,
+    "armazenamento_bytes": 1995,
+    "trafego_bytes_binario": 416,
+    "trafego_bytes_json_estimado": 1664,
+    "trabalho_por_no": {
+      "n1": 1,
+      "n2": 8,
+      "n3": 1,
+      "n4": 2
+    }
+  },
+  "custo_competitivo": {
+    "pontos": 35.9,
+    "limite": 40,
+    "recarga_ms": 2454,
+    "folego": 18,
+    "alcance_cm": 400,
+    "preparo_min_ms": 200,
+    "impacto_total": 1,
+    "criterios_ativos": true,
+    "por_no": {
+      "n2": 25.4,
+      "n3": 1.5,
+      "n4": 9
+    },
+    "detalhes": [
+      {
+        "no": "n2",
+        "caminho": "n2/n1/n1",
+        "rotulo": "Passo",
+        "pontos": 8,
+        "motivo": "mobilidade 3,00 m a 2000 cm/s"
+      },
+      {
+        "no": "n2",
+        "caminho": "n2/n2/n1",
+        "rotulo": "Pulso",
+        "pontos": 17.4,
+        "motivo": "impacto 1, área 3,1 m², alcance 4,00 m, preparo 200 ms"
+      },
+      {
+        "no": "n3",
+        "caminho": "n3",
+        "rotulo": "Janela de volta",
+        "pontos": 1.5,
+        "motivo": "janela de comando (mistura de tempo)"
+      },
+      {
+        "no": "n4",
+        "caminho": "n4",
+        "rotulo": "Volta à marca",
+        "pontos": 9,
+        "motivo": "mobilidade 3,00 m a 2500 cm/s"
+      }
+    ]
+  },
+  "eventos": [
+    {
+      "t_ms": 0,
+      "tipo": "exec.inicio",
+      "autor": 1,
+      "slot": 0,
+      "digest": "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120",
+      "origem": [
+        -600,
+        -250,
+        0
+      ],
+      "yaw": 0,
+      "mira_yaw": 0,
+      "recarga_ate": 1000,
+      "folego": 100,
+      "duracao_max_ms": 990,
+      "exec": 1
+    },
+    {
+      "t_ms": 0,
+      "tipo": "marca",
+      "no": "n1",
+      "rotulo": "Marca de saída",
+      "ponto": [
+        -600,
+        -250,
+        0
+      ],
+      "exec": 1
+    },
+    {
+      "t_ms": 0,
+      "tipo": "escopo.inicio",
+      "no": "n2",
+      "rotulo": "Travessia r1",
+      "digest": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+      "exec": 1
+    },
+    {
+      "t_ms": 0,
+      "tipo": "escopo.inicio",
+      "no": "n2/n1",
+      "rotulo": "Passo r1",
+      "digest": "sha256:10c56a2ada20d857960cc92a8277dc7757f78870a143d7232921c4da0e9c1733",
+      "exec": 1
+    },
+    {
+      "t_ms": 0,
+      "tipo": "mov.inicio",
+      "no": "n2/n1/n1",
+      "rotulo": "Passo",
+      "ent": 1,
+      "de": [
+        -600,
+        -250,
+        0
+      ],
+      "ctrl": [
+        -450,
+        -250,
+        0
+      ],
+      "para": [
+        -300,
+        -250,
+        0
+      ],
+      "t0": 1000,
+      "t1": 1150,
+      "exec": 1
+    },
+    {
+      "t_ms": 150,
+      "tipo": "mov.fim",
+      "no": "n2/n1/n1",
+      "rotulo": "Passo",
+      "ent": 1,
+      "pos": [
+        -300,
+        -250,
+        0
+      ],
+      "exec": 1
+    },
+    {
+      "t_ms": 150,
+      "tipo": "escopo.fim",
+      "no": "n2/n1",
+      "rotulo": "Passo r1",
+      "exec": 1
+    },
+    {
+      "t_ms": 150,
+      "tipo": "escopo.inicio",
+      "no": "n2/n2",
+      "rotulo": "Pulso r1",
+      "digest": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
+      "exec": 1
+    },
+    {
+      "t_ms": 150,
+      "tipo": "area.anuncio",
+      "id": 2,
+      "no": "n2/n2/n1",
+      "rotulo": "Pulso",
+      "autor": 1,
+      "centro": [
+        -300,
+        -250,
+        0
+      ],
+      "raio": 100,
+      "espessura": 0,
+      "altura": 200,
+      "t_contato": 1350,
+      "t_fim": 1450,
+      "impacto": 1,
+      "segue": false,
+      "superficie": "concreto",
+      "exec": 1
+    },
+    {
+      "t_ms": 350,
+      "tipo": "area.contato",
+      "id": 2,
+      "no": "n2/n2/n1",
+      "rotulo": "Pulso",
+      "autor": 1,
+      "centro": [
+        -300,
+        -250,
+        0
+      ],
+      "raio": 100,
+      "primeiro": true,
+      "resultados": [
+        {
+          "ent": 2,
+          "nome": "Alvo",
+          "pos": [
+            -300,
+            -160,
+            0
+          ],
+          "dist": 90,
+          "limite": 134,
+          "resultado": "atingido",
+          "motivo": "distância 90,0 cm ≤ 134,0 cm"
+        }
+      ],
+      "exec": 1
+    },
+    {
+      "t_ms": 350,
+      "tipo": "impacto",
+      "autor": 1,
+      "alvo": 2,
+      "alvo_nome": "Alvo",
+      "alvo_tipo": "alvo",
+      "valor": 1,
+      "area": 2,
+      "centro": [
+        -300,
+        -250,
+        0
+      ],
+      "raio": 100,
+      "pos_alvo": [
+        -300,
+        -160,
+        0
+      ],
+      "dist": 90,
+      "digest": "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120",
+      "exec": 1
+    },
+    {
+      "t_ms": 450,
+      "tipo": "area.fim",
+      "id": 2,
+      "atingidos": 1,
+      "exec": 1
+    },
+    {
+      "t_ms": 450,
+      "tipo": "escopo.fim",
+      "no": "n2/n2",
+      "rotulo": "Pulso r1",
+      "exec": 1
+    },
+    {
+      "t_ms": 450,
+      "tipo": "escopo.fim",
+      "no": "n2",
+      "rotulo": "Travessia r1",
+      "exec": 1
+    },
+    {
+      "t_ms": 450,
+      "tipo": "janela.abre",
+      "id": 3,
+      "no": "n3",
+      "rotulo": "Janela de volta",
+      "t_abre": 1450,
+      "t_fecha": 1750,
+      "t_decide": 1870,
+      "gatilho": "pressionar",
+      "comando": "mesmo_botao",
+      "exec": 1
+    },
+    {
+      "t_ms": 600,
+      "tipo": "cmd.recebido",
+      "t_julgado": 1600,
+      "t_cliente": 1600,
+      "comando": "pressionar",
+      "exec": 1
+    },
+    {
+      "t_ms": 600,
+      "tipo": "janela.resultado",
+      "no": "n3",
+      "rotulo": "Janela de volta",
+      "t_comando": 1600,
+      "t_abre": 1450,
+      "t_fecha": 1750,
+      "resultado": "comando",
+      "t_decisao": 1600,
+      "exec": 1
+    },
+    {
+      "t_ms": 600,
+      "tipo": "mov.inicio",
+      "no": "n4",
+      "rotulo": "Volta à marca",
+      "ent": 1,
+      "de": [
+        -300,
+        -250,
+        0
+      ],
+      "ctrl": [
+        -450,
+        -250,
+        0
+      ],
+      "para": [
+        -600,
+        -250,
+        0
+      ],
+      "t0": 1600,
+      "t1": 1720,
+      "exec": 1
+    },
+    {
+      "t_ms": 720,
+      "tipo": "mov.fim",
+      "no": "n4",
+      "rotulo": "Volta à marca",
+      "ent": 1,
+      "pos": [
+        -600,
+        -250,
+        0
+      ],
+      "exec": 1
+    },
+    {
+      "t_ms": 720,
+      "tipo": "exec.fim",
+      "motivo": "concluida",
+      "autor": 1,
+      "slot": 0,
+      "duracao_ms": 720,
+      "exec": 1
+    }
+  ]
+}

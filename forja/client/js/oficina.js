@@ -437,7 +437,7 @@ export class Oficina {
       handle(g2t(ar.centro[0] + ar.raio, ar.centro[1], 15), 0xff9a3c, 'anel.raio', { centro: ar.centro, no: n.id });
       const yaw = this._yawEm(ar.t - this.sim.t0, ar.autor);
       handle(g2t(ar.centro[0], ar.centro[1], 15), 0xffffff, 'anel.centro', { centro: ar.centro, desloc: n.p.deslocamento_cm, yaw, no: n.id });
-    } else if (n.op === 'lastro.anteparo') {
+    } else if (n.op === 'lastro.guarda') {
       const g = ev('guarda.inicio');
       if (!g) return;
       const p = this.mundoSim.posicao(g.ent, g.t);

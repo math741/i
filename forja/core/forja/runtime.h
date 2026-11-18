@@ -99,6 +99,10 @@ public:
 
     void set_move(int ent, Vec3 dir, double yaw, int64_t t);
     void teleport(int ent, Vec3 pos, double yaw, int64_t t);
+    // Motor externo (Unreal): a posição vem do CharacterMovement. Fora de deslocamento da receita, a entidade
+    // assume a posição dada (com detecção de travessia de superfície no trecho); durante um deslocamento,
+    // o runtime manda e o adaptador aplica a posição do runtime ao ator.
+    void sync_external(int ent, Vec3 pos, double yaw, int64_t t);
 
     static constexpr int64_t kSemRelogio = INT64_MIN;
     struct Act { bool ok = false; uint32_t exec = 0; std::string motivo; bool foi_comando = false; int64_t t_julgado = 0; };
@@ -192,6 +196,7 @@ private:
     void on_token(Exec& ex, const QItem& q);
     void on_timer(const QItem& q);
     void step_world(int64_t t);
+    void vigiar_trecho(Entity& e, const Vec3& old, int64_t t_old, int64_t t);
     void area_check(Area& a, int64_t t, bool primeiro);
     Vec3 anchor_point(Exec& ex, const PNode& n, int sinst, const TokCtx& c);
     Exec* exec(uint32_t id);

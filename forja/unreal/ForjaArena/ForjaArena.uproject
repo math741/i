@@ -1,0 +1,15 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.8",
+	"Category": "",
+	"Description": "Forja — poderes criados pelo jogador. Fatia vertical: galeria de drenagem, duelo 1v1, oficina.",
+	"Modules": [
+		{ "Name": "ForjaCore", "Type": "Runtime", "LoadingPhase": "PreDefault" },
+		{ "Name": "ForjaArena", "Type": "Runtime", "LoadingPhase": "Default", "AdditionalDependencies": [ "Engine", "GameplayAbilities" ] }
+	],
+	"Plugins": [
+		{ "Name": "GameplayAbilities", "Enabled": true },
+		{ "Name": "EnhancedInput", "Enabled": true },
+		{ "Name": "Niagara", "Enabled": true }
+	]
+}

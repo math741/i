@@ -313,7 +313,7 @@ void fill_params(PNode& pn, const OpDef& od, const Json& p) {
             break;
         case OpKind::Sondar: pn.ancora = A(S("ancora")); pn.sup = parse_surface(S("superficie")); break;
         case OpKind::Vigiar: pn.sup = parse_surface(S("superficie")); pn.dur = I("duracao_ms"); pn.disparos = I("disparos"); break;
-        case OpKind::Anteparo:
+        case OpKind::Guarda:
             pn.abertura = I("abertura_graus"); pn.orient = I("orientacao_graus"); pn.segue = p.get("segue_autor").as_bool();
             pn.gesto = S("gesto"); pn.prep = I("preparo_ms"); pn.dur = I("duracao_ms"); pn.cargas = I("cargas"); pn.recup = I("recuperacao_ms");
             break;
@@ -439,7 +439,7 @@ struct Analyzer {
         switch (n.kind) {
             case OpKind::Deslocar: case OpKind::Retornar: case OpKind::Vigiar: dmin = dmax = n.dur; break;
             case OpKind::Anel: dmin = dmax = n.prep + n.contato; break;
-            case OpKind::Anteparo: dmin = n.prep; dmax = n.prep + n.dur; break;
+            case OpKind::Guarda: dmin = n.prep; dmax = n.prep + n.dur; break;
             case OpKind::Amparo: dmin = dmax = n.prep; break;
             case OpKind::Janela: dmin = n.abre; dmax = n.abre + n.dura + R.tolerancia_ms; break;
             case OpKind::Esperar: dmin = dmax = n.ms; break;
@@ -509,7 +509,7 @@ struct Analyzer {
                 if (k == 0) set(0, n.dur, n.disparos, true);
                 else set(n.dur, n.dur, 1, false);
                 break;
-            case OpKind::Anteparo:
+            case OpKind::Guarda:
                 if (k == 0) { set(n.prep, n.prep + n.dur, n.cargas, true); pi.pb = db[static_cast<size_t>(j)] + R.alcance_max_cm; }
                 else if (k == 1) set(n.prep, n.prep + n.dur, 1, true);
                 else if (k == 2) set(n.prep + n.dur, n.prep + n.dur, 1, true);
@@ -617,7 +617,7 @@ std::vector<Phase> phases_of(const PNode& n, const Rules& R, int64_t exec_dur, i
             break;
         case OpKind::Deslocar: case OpKind::Retornar: v.push_back({0, n.dur, 2, 0, 48}); break;
         case OpKind::Vigiar: v.push_back({0, n.dur, 2, 0, 32}); break;
-        case OpKind::Anteparo: v.push_back({0, n.prep + n.dur, 1, 0, 48}); break;
+        case OpKind::Guarda: v.push_back({0, n.prep + n.dur, 1, 0, 48}); break;
         case OpKind::Amparo:
             v.push_back({0, n.prep, 1, 1, 64});
             v.push_back({n.prep, n.prep + 17, area_work_units(n.raio), 1, 64});
@@ -642,7 +642,7 @@ void events_of(const PNode& n, int K, int& ev, int& bytes) {
         case OpKind::Anel: ev = 3; bytes = 64 + 12 * K; break;
         case OpKind::Sondar: ev = 1; bytes = 12; break;
         case OpKind::Vigiar: ev = 1 + n.disparos; bytes = 12 + 20 * n.disparos; break;
-        case OpKind::Anteparo: ev = 2 + n.cargas; bytes = 40 + 24 * n.cargas; break;
+        case OpKind::Guarda: ev = 2 + n.cargas; bytes = 40 + 24 * n.cargas; break;
         case OpKind::Amparo: ev = 2 + K; bytes = 24 + 20 * K; break;
         case OpKind::Janela: ev = 2; bytes = 28; break;
         case OpKind::Encerrar: ev = 1; bytes = 8; break;
@@ -654,7 +654,7 @@ const char* fundamento_of(OpKind k) {
     switch (k) {
         case OpKind::Deslocar: case OpKind::Retornar: case OpKind::Marca: return "Vetor";
         case OpKind::Anel: case OpKind::Sondar: case OpKind::Vigiar: return "Limiar";
-        case OpKind::Anteparo: case OpKind::Amparo: return "Lastro";
+        case OpKind::Guarda: case OpKind::Amparo: return "Lastro";
         case OpKind::Janela: case OpKind::Esperar: case OpKind::Repetir: case OpKind::Reunir: case OpKind::Encerrar: return "Cadência";
         case OpKind::Incorporar: return "Subcriação";
         default: return "Entrada";
@@ -866,7 +866,7 @@ CompileOut compile_recipe(const Json& behavior, const Resolver& res, const Rules
                 addc(n, pts, "mobilidade " + fmt_m(static_cast<int64_t>(dist)) + " a " + std::to_string(static_cast<int>(speed)) + " cm/s");
                 break;
             }
-            case OpKind::Anteparo: {
+            case OpKind::Guarda: {
                 double pts = m * std::max(1.0, 2.0 + 2.0 * (n.abertura / 90.0) * n.cargas + n.dur / 500.0 - n.prep / 200.0);
                 addc(n, pts, "proteção " + std::to_string(n.abertura) + "° × " + std::to_string(n.cargas) + " por " + fmt_ms(n.dur));
                 break;
@@ -882,7 +882,7 @@ CompileOut compile_recipe(const Json& behavior, const Resolver& res, const Rules
             case OpKind::Vigiar: case OpKind::Sondar: addc(n, 0.5 * m, "condição de superfície"); break;
             default: break;
         }
-        if (n.recup > 0 && (n.kind == OpKind::Deslocar || n.kind == OpKind::Retornar || n.kind == OpKind::Anel || n.kind == OpKind::Anteparo))
+        if (n.recup > 0 && (n.kind == OpKind::Deslocar || n.kind == OpKind::Retornar || n.kind == OpKind::Anel || n.kind == OpKind::Guarda))
             addc(n, -m * n.recup / 200.0, "recuperação " + fmt_ms(n.recup) + " (abertura para reação)");
     }
     if (total < 1) total = 1;
@@ -1002,7 +1002,7 @@ CompileOut compile_recipe(const Json& behavior, const Resolver& res, const Rules
         }
         if (alcance > rules.alcance_max_cm) comp("alcance", hits.empty() ? "" : P.nodes[static_cast<size_t>(hits[0].node)].top, "", "alcance de " + fmt_m(static_cast<int64_t>(alcance)) + " excede " + fmt_m(rules.alcance_max_cm));
         for (auto& n : P.nodes) {
-            if (!n.alcancavel || n.kind != OpKind::Anteparo) continue;
+            if (!n.alcancavel || n.kind != OpKind::Guarda) continue;
             if (n.abertura > rules.abertura_max_graus) comp("abertura", n.top, n.id, n.rotulo + ": abertura de " + std::to_string(n.abertura) + "° excede " + std::to_string(rules.abertura_max_graus) + "° (o oponente precisa de um flanco)");
             if (n.cargas > rules.cargas_max) comp("cargas", n.top, n.id, n.rotulo + ": " + std::to_string(n.cargas) + " cargas excedem " + std::to_string(rules.cargas_max));
         }
@@ -1015,7 +1015,7 @@ CompileOut compile_recipe(const Json& behavior, const Resolver& res, const Rules
             comp("custo_alto", worst, "", "custo competitivo " + fmt1(P.custo) + " excede " + fmt1(rules.custo_max) + " (maior parcela: " + worst + ")");
             for (auto& n : P.nodes) {
                 if (!n.alcancavel || n.top != worst || n.id != n.top) continue;
-                if (n.kind == OpKind::Anel || n.kind == OpKind::Deslocar || n.kind == OpKind::Anteparo || n.kind == OpKind::Retornar) {
+                if (n.kind == OpKind::Anel || n.kind == OpKind::Deslocar || n.kind == OpKind::Guarda || n.kind == OpKind::Retornar) {
                     int need = static_cast<int>(std::ceil((P.custo - rules.custo_max) * 200.0 / std::max(1, n.mult)));
                     if (n.recup + need <= 2000) {
                         Json s = Json::obj();
@@ -1048,7 +1048,7 @@ CompileOut compile_recipe(const Json& behavior, const Resolver& res, const Rules
         switch (n.kind) {
             case OpKind::Deslocar: case OpKind::Retornar: seg(n, "deslocamento", 0, n.dur); if (n.recup) seg(n, "recuperacao", n.dur, n.dur + n.recup); break;
             case OpKind::Anel: seg(n, "preparo", 0, n.prep); seg(n, "contato", n.prep, n.prep + n.contato); if (n.recup) seg(n, "recuperacao", n.prep + n.contato, n.prep + n.contato + n.recup); break;
-            case OpKind::Anteparo: seg(n, "preparo", 0, n.prep); seg(n, "persistencia", n.prep, n.prep + n.dur); if (n.recup) seg(n, "recuperacao", n.prep + n.dur, n.prep + n.dur + n.recup); break;
+            case OpKind::Guarda: seg(n, "preparo", 0, n.prep); seg(n, "persistencia", n.prep, n.prep + n.dur); if (n.recup) seg(n, "recuperacao", n.prep + n.dur, n.prep + n.dur + n.recup); break;
             case OpKind::Amparo: seg(n, "preparo", 0, n.prep); seg(n, "persistencia", n.prep, n.prep + n.dur); break;
             case OpKind::Janela: seg(n, "janela", n.abre, n.abre + n.dura); seg(n, "confirmacao", n.abre + n.dura, n.abre + n.dura + rules.tolerancia_ms); break;
             case OpKind::Vigiar: seg(n, "vigia", 0, n.dur); break;

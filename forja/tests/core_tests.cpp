@@ -205,7 +205,7 @@ static void test_anteparo(Workshop& wa, Workshop& wb, Autoria& a, std::string& a
     std::printf("[4] Anteparo (abertura 90°): impacto de frente x a 90° do eixo\n");
     Json r = W(wb, R"({"cmd":"criar","nome":"Anteparo"})");
     anteparo_id = r.get("criacao").as_str();
-    W(wb, F(R"({"cmd":"no.adicionar","criacao":"%s","op":"lastro.anteparo","p":{"abertura_graus":90,"gesto":"bracos_cruzados","preparo_ms":150,"duracao_ms":1500,"cargas":1},"rotulo":"Anteparo","ligar_de":"n0","porta":"ao_ativar"})", anteparo_id.c_str()));
+    W(wb, F(R"({"cmd":"no.adicionar","criacao":"%s","op":"lastro.guarda","p":{"abertura_graus":90,"gesto":"bracos_cruzados","preparo_ms":150,"duracao_ms":1500,"cargas":1},"rotulo":"Anteparo","ligar_de":"n0","porta":"ao_ativar"})", anteparo_id.c_str()));
     W(wb, F(R"({"cmd":"salvar","criacao":"%s"})", anteparo_id.c_str()));
     Match m(MatchConfig::for_mode("duelo"));
     int t = 1000;
@@ -609,7 +609,7 @@ static void test_determinism_and_ties(Workshop& wa, Autoria& a) {
     Workshop& w = wa;
     Json g = W(w, R"({"cmd":"criar","nome":"Guarda instantânea"})");
     std::string gid = g.get("criacao").as_str();
-    W(w, F(R"({"cmd":"no.adicionar","criacao":"%s","op":"lastro.anteparo","p":{"preparo_ms":200,"abertura_graus":90},"ligar_de":"n0","porta":"ao_ativar"})", gid.c_str()));
+    W(w, F(R"({"cmd":"no.adicionar","criacao":"%s","op":"lastro.guarda","p":{"preparo_ms":200,"abertura_graus":90},"ligar_de":"n0","porta":"ao_ativar"})", gid.c_str()));
     W(w, F(R"({"cmd":"salvar","criacao":"%s"})", gid.c_str()));
     Match m(MatchConfig::for_mode("duelo"));
     int64_t t = 1000;
@@ -628,6 +628,17 @@ static void test_determinism_and_ties(Workshop& wa, Autoria& a) {
     std::string res;
     for (auto& e : m.drain()) if (e.get("tipo").as_str() == "area.contato") res = e.get("resultados").at(0).get("resultado").as_str();
     CHECK(res == "absorvido", "no mesmo milissegundo, a defesa vence (%s)", res.c_str());
+}
+
+static void test_sync_external() {
+    std::printf("[14] Motor externo (Unreal): posição sincronizada e travessia detectada\n");
+    Runtime rt(Arena::galeria(), Rules::duelo());
+    int e = rt.add_entity(EntKind::Jogador, 0, "ue", Vec3(0, -300, 0), 90);
+    rt.advance(1000);
+    rt.sync_external(e, Vec3(0, -100, 0), 90, 1016);
+    CHECK(std::fabs(rt.ent(e)->pos.y + 100) < 1e-6, "posição externa aplicada fora de deslocamento");
+    rt.sync_external(e, Vec3(5000, 0, 0), 90, 1032);
+    CHECK(rt.ent(e)->pos.x <= 1400 - 34 + 1e-6, "posição externa respeita os limites da arena");
 }
 
 static void test_costs_report(Workshop& wa, Autoria& a) {
@@ -671,6 +682,7 @@ int main() {
     test_room_limits_cancel(wa, a);
     test_invalid(wa, a);
     test_versions(wa, libA, a, rootA);
+    test_sync_external();
     std::printf("\nresultado: %d verificações aprovadas, %d falharam\n", g_pass, g_fail);
     g_report.set("aprovadas", g_pass);
     g_report.set("falhas", g_fail);

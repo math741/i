@@ -1,15 +1,15 @@
 {
-  "inicio": "2026-11-18T17:55:31.334Z",
+  "inicio": "2026-11-18T17:59:39.083Z",
   "topologia": "servidor dedicado local + 2 clientes em processos separados (mesma máquina, loopback)",
   "verificacoes": [
     {
       "ok": true,
       "desc": "servidor e jogadores em processos distintos",
       "dados": {
-        "servidor_pid": 3957,
-        "ana_pid": 3958,
-        "bruno_pid": 3959,
-        "orquestrador_pid": 3950
+        "servidor_pid": 4158,
+        "ana_pid": 4159,
+        "bruno_pid": 4160,
+        "orquestrador_pid": 4151
       }
     },
     {
@@ -66,13 +66,13 @@
           "t": 1678,
           "resultado": "atingido",
           "motivo": "distância 90,0 cm ≤ 134,0 cm",
-          "recebido_em": 1682,
-          "atraso_ms": 4
+          "recebido_em": 1683,
+          "atraso_ms": 5
         },
         "previsao_local": {
           "tipo": "aceita",
           "erro_destino_cm": 0,
-          "antecipacao_ms": 6
+          "antecipacao_ms": 7
         }
       }
     },
@@ -86,7 +86,7 @@
       "dados": {
         "tipo": "aceita",
         "erro_destino_cm": 0,
-        "antecipacao_ms": 6
+        "antecipacao_ms": 7
       }
     },
     {
@@ -114,8 +114,8 @@
           "t": 2664,
           "resultado": "fora",
           "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm",
-          "recebido_em": 2674,
-          "atraso_ms": 10
+          "recebido_em": 2673,
+          "atraso_ms": 9
         },
         "cliente_bruno": {
           "centro": [
@@ -127,8 +127,8 @@
           "t": 2664,
           "resultado": "fora",
           "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm",
-          "recebido_em": 2675,
-          "atraso_ms": 11
+          "recebido_em": 2673,
+          "atraso_ms": 9
         }
       }
     },
@@ -166,8 +166,8 @@
       "dados": {
         "caso": "dentro",
         "comando_ms": 600,
-        "enviado_ms_real": 599,
-        "julgado_rel_ms": 599,
+        "enviado_ms_real": 600,
+        "julgado_rel_ms": 600,
         "janela": [
           450,
           750
@@ -190,7 +190,7 @@
       "dados": {
         "caso": "tarde",
         "comando_ms": 800,
-        "enviado_ms_real": 800,
+        "enviado_ms_real": 799,
         "julgado_rel_ms": 799,
         "janela": [
           450,
@@ -244,7 +244,7 @@
             0
           ],
           "raio": 100,
-          "t": 10169,
+          "t": 10200,
           "resultado": "absorvido",
           "motivo": "absorvido: impacto a 0.0° do eixo ≤ 45.0° (metade de 90°)"
         },
@@ -262,7 +262,7 @@
     },
     {
       "ok": true,
-      "desc": "flanco (90° do eixo): atingido — distância 80,0 cm ≤ 134,0 cm; anteparo não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)",
+      "desc": "flanco (90° do eixo): atingido — distância 80,0 cm ≤ 134,0 cm; guarda não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)",
       "dados": {
         "caso": "flanco (90° do eixo)",
         "servidor": {
@@ -272,9 +272,9 @@
             0
           ],
           "raio": 100,
-          "t": 12633,
+          "t": 12664,
           "resultado": "atingido",
-          "motivo": "distância 80,0 cm ≤ 134,0 cm; anteparo não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)"
+          "motivo": "distância 80,0 cm ≤ 134,0 cm; guarda não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)"
         },
         "ana_ve_frente": {
           "eixo_yaw": 180,
@@ -316,7 +316,7 @@
         "ana1": "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120",
         "ana2": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
         "ana3": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
-        "bruno0": "sha256:128798a61a9ddfd0babd19993ba131ea882d336ef9ac72cfbcdb3987077bbaf3",
+        "bruno0": "sha256:83cc5537132ff903a4dc2113ec3c910afa325fd035b630f09a902dd198fb821f",
         "bruno2": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a"
       }
     },
@@ -339,7 +339,7 @@
       "desc": "impacto decisivo idêntico no servidor e nos dois clientes",
       "dados": {
         "servidor": {
-          "t": 34815,
+          "t": 34590,
           "centro": [
             602,
             110.7,
@@ -360,7 +360,7 @@
           }
         },
         "cliente_ana": {
-          "recebido_em_servidor_est": 34818,
+          "recebido_em_servidor_est": 34593,
           "atraso_ms": 3,
           "centro": [
             602,
@@ -377,8 +377,8 @@
           }
         },
         "cliente_bruno": {
-          "recebido_em_servidor_est": 34818,
-          "atraso_ms": 3,
+          "recebido_em_servidor_est": 34594,
+          "atraso_ms": 4,
           "centro": [
             602,
             110.7,
@@ -405,13 +405,13 @@
           "limite": 134,
           "resultado": "atingido",
           "angulo": 91.3,
-          "motivo": "distância 89,3 cm ≤ 134,0 cm; anteparo não cobre: impacto a 91.3° do eixo > 45.0° (metade de 90°)"
+          "motivo": "distância 89,3 cm ≤ 134,0 cm; guarda não cobre: impacto a 91.3° do eixo > 45.0° (metade de 90°)"
         }
       }
     },
     {
       "ok": true,
-      "desc": "o ponto veio pela abertura lateral do Anteparo: distância 89,3 cm ≤ 134,0 cm; anteparo não cobre: impacto a 91.3° do eixo > 45.0° (metade de 90°)"
+      "desc": "o ponto veio pela abertura lateral do Anteparo: distância 89,3 cm ≤ 134,0 cm; guarda não cobre: impacto a 91.3° do eixo > 45.0° (metade de 90°)"
     },
     {
       "ok": true,
@@ -447,7 +447,7 @@
     },
     {
       "ok": true,
-      "desc": "servidor reiniciado (pid 3957 → 3984); acervos recarregados do disco"
+      "desc": "servidor reiniciado (pid 4158 → 4184); acervos recarregados do disco"
     },
     {
       "ok": true,
@@ -463,10 +463,10 @@
     },
     {
       "ok": true,
-      "desc": "previsão x servidor: centro (200, -70) (erro 0.0 cm), contato 297 ms (previsto ~290), T1 atingido, T2 fora",
+      "desc": "previsão x servidor: centro (200, -70) (erro 0.0 cm), contato 296 ms (previsto ~290), T1 atingido, T2 fora",
       "dados": {
         "previsao": {
-          "escrita_em": "2026-11-18T17:56:14.559Z",
+          "escrita_em": "2026-11-18T18:00:22.085Z",
           "regras": [
             "Ao ativar → Passo r1 (executa Passo r1)",
             "Ao ativar → Vigia do canal (por 200 ms, vigia quando o autor cruza para água)",
@@ -504,7 +504,7 @@
             0
           ],
           "raio": 120,
-          "contato_ms": 297,
+          "contato_ms": 296,
           "T1": "atingido",
           "T2": "fora"
         },
@@ -518,11 +518,11 @@
     },
     {
       "ok": true,
-      "desc": "latência variável: o 2º comando chegou em 800 ms (janela fechou em 750), julgado em 700 ms pela linha do tempo do jogador → comando (sem compensação: tarde)",
+      "desc": "latência variável: o 2º comando chegou em 800 ms (janela fechou em 750), julgado em 701 ms pela linha do tempo do jogador → comando (sem compensação: tarde)",
       "dados": {
         "comando_local_ms": 700,
         "chegada_rel_ms": 800,
-        "julgado_rel_ms": 700,
+        "julgado_rel_ms": 701,
         "janela": [
           450,
           750
@@ -534,15 +534,15 @@
     },
     {
       "ok": true,
-      "desc": "entradas de Bruno com perda/duplicação: 11 de 11 aceitas no servidor"
+      "desc": "entradas de Bruno com perda/duplicação: 10 de 11 aceitas no servidor"
     },
     {
       "ok": true,
-      "desc": "comando duplicado (mesmo seq) descartado pelo servidor; 7 duplicata(s) no registro (inclui as injetadas pelo condicionador)"
+      "desc": "comando duplicado (mesmo seq) descartado pelo servidor; 3 duplicata(s) no registro (inclui as injetadas pelo condicionador)"
     },
     {
       "ok": true,
-      "desc": "cliente de Bruno observa os eventos com atraso mediano de 66 ms (descida configurada: 40 ms)"
+      "desc": "cliente de Bruno observa os eventos com atraso mediano de 58 ms (descida configurada: 40 ms)"
     }
   ],
   "secoes": {
@@ -582,13 +582,13 @@
           "t": 1678,
           "resultado": "atingido",
           "motivo": "distância 90,0 cm ≤ 134,0 cm",
-          "recebido_em": 1682,
-          "atraso_ms": 4
+          "recebido_em": 1683,
+          "atraso_ms": 5
         },
         "previsao_local": {
           "tipo": "aceita",
           "erro_destino_cm": 0,
-          "antecipacao_ms": 6
+          "antecipacao_ms": 7
         }
       },
       "pulso_depois_passo": {
@@ -613,8 +613,8 @@
           "t": 2664,
           "resultado": "fora",
           "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm",
-          "recebido_em": 2674,
-          "atraso_ms": 10
+          "recebido_em": 2673,
+          "atraso_ms": 9
         },
         "cliente_bruno": {
           "centro": [
@@ -626,8 +626,8 @@
           "t": 2664,
           "resultado": "fora",
           "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm",
-          "recebido_em": 2675,
-          "atraso_ms": 11
+          "recebido_em": 2673,
+          "atraso_ms": 9
         }
       },
       "alvo": [
@@ -724,8 +724,8 @@
       {
         "caso": "dentro",
         "comando_ms": 600,
-        "enviado_ms_real": 599,
-        "julgado_rel_ms": 599,
+        "enviado_ms_real": 600,
+        "julgado_rel_ms": 600,
         "janela": [
           450,
           750
@@ -740,7 +740,7 @@
       {
         "caso": "tarde",
         "comando_ms": 800,
-        "enviado_ms_real": 800,
+        "enviado_ms_real": 799,
         "julgado_rel_ms": 799,
         "janela": [
           450,
@@ -780,7 +780,7 @@
             0
           ],
           "raio": 100,
-          "t": 10169,
+          "t": 10200,
           "resultado": "absorvido",
           "motivo": "absorvido: impacto a 0.0° do eixo ≤ 45.0° (metade de 90°)"
         },
@@ -800,9 +800,9 @@
             0
           ],
           "raio": 100,
-          "t": 12633,
+          "t": 12664,
           "resultado": "atingido",
-          "motivo": "distância 80,0 cm ≤ 134,0 cm; anteparo não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)"
+          "motivo": "distância 80,0 cm ≤ 134,0 cm; guarda não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)"
         },
         "ana_ve_frente": {
           "eixo_yaw": 180,
@@ -816,7 +816,7 @@
       "ana0": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
       "ana1": "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120",
       "ana2": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
-      "bruno0": "sha256:128798a61a9ddfd0babd19993ba131ea882d336ef9ac72cfbcdb3987077bbaf3",
+      "bruno0": "sha256:83cc5537132ff903a4dc2113ec3c910afa325fd035b630f09a902dd198fb821f",
       "bruno2": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a"
     },
     "entrada_tardia": {
@@ -827,7 +827,7 @@
     },
     "impacto_decisivo": {
       "servidor": {
-        "t": 34815,
+        "t": 34590,
         "centro": [
           602,
           110.7,
@@ -848,7 +848,7 @@
         }
       },
       "cliente_ana": {
-        "recebido_em_servidor_est": 34818,
+        "recebido_em_servidor_est": 34593,
         "atraso_ms": 3,
         "centro": [
           602,
@@ -865,8 +865,8 @@
         }
       },
       "cliente_bruno": {
-        "recebido_em_servidor_est": 34818,
-        "atraso_ms": 3,
+        "recebido_em_servidor_est": 34594,
+        "atraso_ms": 4,
         "centro": [
           602,
           110.7,
@@ -893,7 +893,7 @@
         "limite": 134,
         "resultado": "atingido",
         "angulo": 91.3,
-        "motivo": "distância 89,3 cm ≤ 134,0 cm; anteparo não cobre: impacto a 91.3° do eixo > 45.0° (metade de 90°)"
+        "motivo": "distância 89,3 cm ≤ 134,0 cm; guarda não cobre: impacto a 91.3° do eixo > 45.0° (metade de 90°)"
       }
     },
     "revisoes": {
@@ -946,8 +946,8 @@
       "raio_apos_desfazer": 100
     },
     "reinicio": {
-      "pid_antes": 3957,
-      "pid_depois": 3984,
+      "pid_antes": 4158,
+      "pid_depois": 4184,
       "contramare_dep": {
         "no": "n2",
         "digest": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
@@ -963,7 +963,7 @@
     },
     "surpresa": {
       "previsao": {
-        "escrita_em": "2026-11-18T17:56:14.559Z",
+        "escrita_em": "2026-11-18T18:00:22.085Z",
         "regras": [
           "Ao ativar → Passo r1 (executa Passo r1)",
           "Ao ativar → Vigia do canal (por 200 ms, vigia quando o autor cruza para água)",
@@ -1001,7 +1001,7 @@
           0
         ],
         "raio": 120,
-        "contato_ms": 297,
+        "contato_ms": 296,
         "T1": "atingido",
         "T2": "fora"
       },
@@ -1025,7 +1025,7 @@
       },
       "medido": {
         "Ana": {
-          "rtt_estimado_ms": 113,
+          "rtt_estimado_ms": 110,
           "condicionador": {
             "lag_subida_ms": 100,
             "lag_descida_ms": 100,
@@ -1041,7 +1041,7 @@
           }
         },
         "Bruno": {
-          "rtt_estimado_ms": 72,
+          "rtt_estimado_ms": 71,
           "condicionador": {
             "lag_subida_ms": 80,
             "lag_descida_ms": 40,
@@ -1050,10 +1050,10 @@
             "perda_descida": 0.05,
             "duplicar": 0.25,
             "descartadas_subida": 0,
-            "descartadas_descida": 3,
-            "retransmitidas_subida": 4,
-            "retransmitidas_descida": 5,
-            "duplicadas": 6
+            "descartadas_descida": 10,
+            "retransmitidas_subida": 6,
+            "retransmitidas_descida": 2,
+            "duplicadas": 2
           }
         }
       },
@@ -1061,7 +1061,7 @@
         "compensacao_ana": {
           "comando_local_ms": 700,
           "chegada_rel_ms": 800,
-          "julgado_rel_ms": 700,
+          "julgado_rel_ms": 701,
           "janela": [
             450,
             750
@@ -1073,100 +1073,100 @@
         "entradas_bruno": [
           {
             "seq": 3,
-            "t_est": 6372,
-            "t_julgado": 6465,
-            "chegada": 6465,
+            "t_est": 6388,
+            "t_julgado": 6480,
+            "chegada": 6480,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 4,
-            "t_est": 6767,
-            "t_julgado": 6848,
-            "chegada": 6848,
+            "t_est": 6782,
+            "t_julgado": 6865,
+            "chegada": 6865,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 5,
-            "t_est": 7390,
-            "t_julgado": 7473,
-            "chegada": 7473,
+            "t_est": 7166,
+            "t_julgado": 7248,
+            "chegada": 7248,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 6,
-            "t_est": 7774,
-            "t_julgado": 7856,
-            "chegada": 7856,
+            "t_est": 7550,
+            "t_julgado": 7632,
+            "chegada": 7632,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 7,
-            "t_est": 8404,
-            "t_julgado": 8480,
-            "chegada": 8480,
+            "t_est": 7934,
+            "t_julgado": 8017,
+            "chegada": 8017,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 8,
-            "t_est": 8786,
-            "t_julgado": 8862,
-            "chegada": 8865,
+            "t_est": 8321,
+            "t_julgado": 8401,
+            "chegada": 8401,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 9,
-            "t_est": 9181,
-            "t_julgado": 9248,
-            "chegada": 9248,
+            "t_est": 8705,
+            "t_julgado": 8785,
+            "chegada": 8785,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 10,
-            "t_est": 9565,
-            "t_julgado": 9632,
-            "chegada": 9632,
+            "t_est": 9341,
+            "t_julgado": 9409,
+            "chegada": 9409,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 11,
-            "t_est": 9950,
-            "t_julgado": 10016,
-            "chegada": 10016,
+            "t_est": 9726,
+            "t_julgado": 9792,
+            "chegada": 9792,
             "aceita": true,
             "motivo": ""
           },
           {
             "seq": 12,
-            "t_est": 10557,
+            "t_est": 10110,
+            "t_julgado": 0,
+            "chegada": 10176,
+            "aceita": false,
+            "motivo": "em recuperação por mais 75 ms"
+          },
+          {
+            "seq": 90000,
+            "t_est": 10558,
             "t_julgado": 10624,
             "chegada": 10624,
             "aceita": true,
             "motivo": ""
-          },
-          {
-            "seq": 90000,
-            "t_est": 10942,
-            "t_julgado": 11008,
-            "chegada": 11008,
-            "aceita": true,
-            "motivo": ""
           }
         ],
-        "duplicadas_descartadas": 7
+        "duplicadas_descartadas": 3
       },
       "observado_cliente_bruno": {
-        "eventos": 20,
-        "atraso_ms_mediana": 66,
-        "atraso_ms_p95": 294,
-        "atraso_ms_max": 294
+        "eventos": 19,
+        "atraso_ms_mediana": 58,
+        "atraso_ms_p95": 292,
+        "atraso_ms_max": 292
       },
       "deduplicacao_manual": {
         "respostas": [
@@ -1190,12 +1190,12 @@
     }
   },
   "processos": {
-    "servidor_pid": 3957,
-    "ana_pid": 3958,
-    "bruno_pid": 3959,
-    "orquestrador_pid": 3950
+    "servidor_pid": 4158,
+    "ana_pid": 4159,
+    "bruno_pid": 4160,
+    "orquestrador_pid": 4151
   },
-  "fim": "2026-11-18T17:56:25.971Z",
+  "fim": "2026-11-18T18:00:33.146Z",
   "aprovadas": 50,
   "falhas": 0,
   "ids": {

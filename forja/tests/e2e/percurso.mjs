@@ -195,7 +195,7 @@ async function main() {
   console.log('\n[4] Anteparo de Bruno (abertura 90°): frente x flanco');
   r = await bruno.of({ cmd: 'criar', nome: 'Anteparo' });
   ids.anteparo = r.criacao;
-  await bruno.of({ cmd: 'no.adicionar', criacao: ids.anteparo, op: 'lastro.anteparo', p: { abertura_graus: 90, gesto: 'bracos_cruzados', preparo_ms: 150, duracao_ms: 1500, cargas: 1 }, rotulo: 'Anteparo', ligar_de: 'n0', porta: 'ao_ativar' });
+  await bruno.of({ cmd: 'no.adicionar', criacao: ids.anteparo, op: 'lastro.guarda', p: { abertura_graus: 90, gesto: 'bracos_cruzados', preparo_ms: 150, duracao_ms: 1500, cargas: 1 }, rotulo: 'Anteparo', ligar_de: 'n0', porta: 'ao_ativar' });
   await bruno.of({ cmd: 'salvar', criacao: ids.anteparo });
   await bruno.call('equipar', { slot: 0, criacao: ids.anteparo });
   await ana.call('equipar', { slot: 3, criacao: ids.pulso });
@@ -302,7 +302,7 @@ async function main() {
   const motivoDecisivo = logServidor().filter((l) => l.tipo === 'area.contato' && l.id === imp_s.area).pop();
   relatorio.secoes.impacto_decisivo.motivo_servidor = motivoDecisivo && motivoDecisivo.resultados.find((x) => x.nome === 'Bruno');
   verificar(JSON.stringify(tripla.cliente_ana.centro) === JSON.stringify(tripla.servidor.centro) && JSON.stringify(tripla.cliente_bruno.centro) === JSON.stringify(tripla.servidor.centro), 'impacto decisivo idêntico no servidor e nos dois clientes', tripla);
-  verificar(relatorio.secoes.impacto_decisivo.motivo_servidor && /anteparo não cobre/.test(relatorio.secoes.impacto_decisivo.motivo_servidor.motivo), 'o ponto veio pela abertura lateral do Anteparo: ' + (relatorio.secoes.impacto_decisivo.motivo_servidor || {}).motivo);
+  verificar(relatorio.secoes.impacto_decisivo.motivo_servidor && /guarda não cobre/.test(relatorio.secoes.impacto_decisivo.motivo_servidor.motivo), 'o ponto veio pela abertura lateral do Anteparo: ' + (relatorio.secoes.impacto_decisivo.motivo_servidor || {}).motivo);
   await ana.pedir('sala.revanche');
   const rev = await bruno.pedir('sala.revanche');
   verificar(rev.ok && rev.iniciada, 'revanche aceita pelos dois e iniciada');

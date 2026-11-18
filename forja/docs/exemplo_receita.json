@@ -1,0 +1,276 @@
+{
+  "formato": "forja.pacote/1",
+  "raiz": "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120",
+  "objetos": {
+    "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120": {
+      "formato": "forja.receita/1",
+      "nos": [
+        {
+          "id": "n0",
+          "op": "entrada.ativar",
+          "v": 1,
+          "p": {}
+        },
+        {
+          "id": "n1",
+          "op": "marca.guardar",
+          "v": 1,
+          "p": {
+            "ancora": "autor"
+          }
+        },
+        {
+          "id": "n2",
+          "op": "sub.incorporar",
+          "v": 1,
+          "p": {
+            "ref": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+            "sobrepor": {}
+          }
+        },
+        {
+          "id": "n3",
+          "op": "cadencia.janela",
+          "v": 1,
+          "p": {
+            "dura_ms": 300,
+            "abre_ms": 0,
+            "gatilho": "pressionar",
+            "comando": "mesmo_botao",
+            "cedo": "ignorar",
+            "tolerancia_cedo_ms": 150
+          }
+        },
+        {
+          "id": "n4",
+          "op": "vetor.retornar",
+          "v": 1,
+          "p": {
+            "duracao_ms": 120,
+            "alcance_max_cm": 1000,
+            "recuperacao_ms": 0
+          }
+        }
+      ],
+      "fluxo": [
+        {
+          "de": "n0",
+          "porta": "ao_ativar",
+          "para": "n1"
+        },
+        {
+          "de": "n1",
+          "porta": "depois",
+          "para": "n2"
+        },
+        {
+          "de": "n2",
+          "porta": "ao_terminar",
+          "para": "n3"
+        },
+        {
+          "de": "n3",
+          "porta": "ao_comando",
+          "para": "n4"
+        }
+      ],
+      "dados": [
+        {
+          "de": "n1",
+          "porta": "ponto",
+          "para": "n4",
+          "entrada": "destino"
+        }
+      ],
+      "expor": []
+    },
+    "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a": {
+      "formato": "forja.receita/1",
+      "nos": [
+        {
+          "id": "n0",
+          "op": "entrada.ativar",
+          "v": 1,
+          "p": {}
+        },
+        {
+          "id": "n1",
+          "op": "sub.incorporar",
+          "v": 1,
+          "p": {
+            "ref": "sha256:10c56a2ada20d857960cc92a8277dc7757f78870a143d7232921c4da0e9c1733",
+            "sobrepor": {}
+          }
+        },
+        {
+          "id": "n2",
+          "op": "sub.incorporar",
+          "v": 1,
+          "p": {
+            "ref": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
+            "sobrepor": {}
+          }
+        }
+      ],
+      "fluxo": [
+        {
+          "de": "n0",
+          "porta": "ao_ativar",
+          "para": "n1"
+        },
+        {
+          "de": "n1",
+          "porta": "ao_terminar",
+          "para": "n2"
+        }
+      ],
+      "dados": [],
+      "expor": []
+    },
+    "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a": {
+      "formato": "forja.receita/1",
+      "nos": [
+        {
+          "id": "n0",
+          "op": "entrada.ativar",
+          "v": 1,
+          "p": {}
+        },
+        {
+          "id": "n1",
+          "op": "limiar.anel",
+          "v": 1,
+          "p": {
+            "raio_cm": 100,
+            "ancora": "autor",
+            "deslocamento_cm": [
+              0,
+              0,
+              0
+            ],
+            "espessura_cm": 0,
+            "altura_cm": 200,
+            "preparo_ms": 200,
+            "contato_ms": 100,
+            "impacto": 1,
+            "afeta": "inimigos",
+            "segue_autor": false,
+            "recuperacao_ms": 0
+          }
+        }
+      ],
+      "fluxo": [
+        {
+          "de": "n0",
+          "porta": "ao_ativar",
+          "para": "n1"
+        }
+      ],
+      "dados": [],
+      "expor": []
+    },
+    "sha256:10c56a2ada20d857960cc92a8277dc7757f78870a143d7232921c4da0e9c1733": {
+      "formato": "forja.receita/1",
+      "nos": [
+        {
+          "id": "n0",
+          "op": "entrada.ativar",
+          "v": 1,
+          "p": {}
+        },
+        {
+          "id": "n1",
+          "op": "vetor.deslocar",
+          "v": 1,
+          "p": {
+            "vetor_cm": [
+              300,
+              0,
+              0
+            ],
+            "duracao_ms": 150,
+            "espaco": "autor",
+            "curva_cm": 0,
+            "recuperacao_ms": 0
+          }
+        }
+      ],
+      "fluxo": [
+        {
+          "de": "n0",
+          "porta": "ao_ativar",
+          "para": "n1"
+        }
+      ],
+      "dados": [],
+      "expor": []
+    }
+  },
+  "nomes": {
+    "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120": {
+      "criacao": "cr-contramar",
+      "nome": "Contramaré",
+      "revisao": 1,
+      "autor": "Ana",
+      "rotulos": {
+        "n1": "Marca de saída",
+        "n2": "Travessia",
+        "n3": "Janela de volta",
+        "n4": "Volta à marca"
+      },
+      "deps": {
+        "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a": {
+          "criacao": "cr-travessia",
+          "revisao": 1,
+          "nome": "Travessia"
+        }
+      },
+      "aparencia": {}
+    },
+    "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a": {
+      "criacao": "cr-travessia",
+      "nome": "Travessia",
+      "revisao": 1,
+      "autor": "Ana",
+      "rotulos": {
+        "n1": "Passo",
+        "n2": "Pulso"
+      },
+      "deps": {
+        "sha256:10c56a2ada20d857960cc92a8277dc7757f78870a143d7232921c4da0e9c1733": {
+          "criacao": "cr-passo",
+          "revisao": 1,
+          "nome": "Passo"
+        },
+        "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a": {
+          "criacao": "cr-pulso",
+          "revisao": 1,
+          "nome": "Pulso"
+        }
+      },
+      "aparencia": {}
+    },
+    "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a": {
+      "criacao": "cr-pulso",
+      "nome": "Pulso",
+      "revisao": 1,
+      "autor": "Ana",
+      "rotulos": {
+        "n1": "Pulso"
+      },
+      "deps": {},
+      "aparencia": {}
+    },
+    "sha256:10c56a2ada20d857960cc92a8277dc7757f78870a143d7232921c4da0e9c1733": {
+      "criacao": "cr-passo",
+      "nome": "Passo",
+      "revisao": 1,
+      "autor": "Ana",
+      "rotulos": {
+        "n1": "Passo"
+      },
+      "deps": {},
+      "aparencia": {}
+    }
+  }
+}

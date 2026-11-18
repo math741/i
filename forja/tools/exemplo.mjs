@@ -1,0 +1,37 @@
+// Gera docs/exemplo_receita.json (pacote canônico da Contramaré) e docs/exemplo_execucao.json (eventos no tempo)
+// pelos mesmos comandos da oficina, num servidor real.
+import { spawn } from 'node:child_process';
+import { writeFileSync, rmSync } from 'node:fs';
+import path from 'node:path';
+import { Conexao } from '../client/js/net.js';
+const RAIZ = path.resolve(import.meta.dirname, '..');
+rmSync(path.join(RAIZ, 'run/exemplo'), { recursive: true, force: true });
+const srv = spawn(path.join(RAIZ, 'build/forja_server'), ['--porta', '8794', '--cliente', path.join(RAIZ, 'client'), '--dados', path.join(RAIZ, 'run/exemplo/saves'), '--logs', path.join(RAIZ, 'run/exemplo/logs')], { stdio: 'ignore' });
+await new Promise((r) => setTimeout(r, 400));
+const c = new Conexao('ws://127.0.0.1:8794/');
+await c.conectar('Ana');
+const o = (x) => c.oficina(x);
+const passo = (await o({ cmd: 'criar', nome: 'Passo' })).criacao;
+await o({ cmd: 'no.adicionar', criacao: passo, op: 'vetor.deslocar', p: { vetor_cm: [300, 0, 0], duracao_ms: 150 }, rotulo: 'Passo', ligar_de: 'n0', porta: 'ao_ativar' });
+await o({ cmd: 'salvar', criacao: passo });
+const pulso = (await o({ cmd: 'criar', nome: 'Pulso' })).criacao;
+await o({ cmd: 'no.adicionar', criacao: pulso, op: 'limiar.anel', p: { raio_cm: 100 }, rotulo: 'Pulso', ligar_de: 'n0', porta: 'ao_ativar' });
+await o({ cmd: 'salvar', criacao: pulso });
+const tr = (await o({ cmd: 'criar', nome: 'Travessia' })).criacao;
+const a = await o({ cmd: 'incorporar', criacao: tr, alvo: passo, ligar_de: 'n0', porta: 'ao_ativar' });
+await o({ cmd: 'incorporar', criacao: tr, alvo: pulso, ligar_de: a.no, porta: 'ao_terminar' });
+await o({ cmd: 'salvar', criacao: tr });
+const cm = (await o({ cmd: 'criar', nome: 'Contramaré' })).criacao;
+const m = await o({ cmd: 'no.adicionar', criacao: cm, op: 'marca.guardar', rotulo: 'Marca de saída', ligar_de: 'n0', porta: 'ao_ativar' });
+const t = await o({ cmd: 'incorporar', criacao: cm, alvo: tr, ligar_de: m.no, porta: 'depois' });
+const j = await o({ cmd: 'no.adicionar', criacao: cm, op: 'cadencia.janela', p: { dura_ms: 300 }, rotulo: 'Janela de volta', ligar_de: t.no, porta: 'ao_terminar' });
+const v = await o({ cmd: 'no.adicionar', criacao: cm, op: 'vetor.retornar', rotulo: 'Volta à marca', ligar_de: j.no, porta: 'ao_comando' });
+await o({ cmd: 'dados.ligar', criacao: cm, de: m.no, porta: 'ponto', para: v.no, entrada: 'destino' });
+const sv = await o({ cmd: 'salvar', criacao: cm });
+const pac = (await o({ cmd: 'exportar', criacao: cm })).pacote;
+writeFileSync(path.join(RAIZ, 'docs/exemplo_receita.json'), JSON.stringify(pac, null, 2));
+const sim = await o({ cmd: 'simular', criacao: cm, cenario: { autor: { pos: [-600, -250, 0], yaw: 0 }, alvos: [{ nome: 'Alvo', pos: [-300, -160, 0] }], comandos: [{ t: 600 }] } });
+const passos = sim.eventos.filter((e) => e.t_rel >= 0).map(({ t, t_rel, ...e }) => ({ t_ms: t_rel, ...e }));
+writeFileSync(path.join(RAIZ, 'docs/exemplo_execucao.json'), JSON.stringify({ receita: sv.digest, cenario: 'autor em (-600,-250) olhando +X; alvo em (-300,-160); comando em 600 ms', regras: sv.analise.regras.map((r) => r.texto), linha_do_tempo: sv.analise.linha_do_tempo, custo_computacional: sv.analise.custo_computacional, custo_competitivo: sv.analise.custo_competitivo, eventos: passos }, null, 2));
+console.log('ok', sv.digest, passos.length, 'eventos');
+c.fechar(); srv.kill(); process.exit(0);

@@ -452,7 +452,7 @@ void Runtime::on_token(Exec& ex, const QItem& q) {
             push_timer(ex.id, q.node, q.sinst, w.t_fim, 3, T_VIGIA_FIM, id);
             break;
         }
-        case OpKind::Anteparo: {
+        case OpKind::Guarda: {
             Guard g;
             g.id = next_inst_++;
             g.exec = ex.id; g.node = q.node; g.sinst = q.sinst;
@@ -560,14 +560,14 @@ void Runtime::area_check(Area& a, int64_t t, bool primeiro) {
         std::string guard_note;
         for (auto& g : e.guards) {
             if (t < g.t_on || t >= g.t_off || g.cargas <= 0) {
-                if (t < g.t_on) guard_note = "anteparo ainda no preparo (ativa em t=" + std::to_string(g.t_on) + ")";
+                if (t < g.t_on) guard_note = "guarda ainda no preparo (ativa em t=" + std::to_string(g.t_on) + ")";
                 continue;
             }
             double axis = (g.segue ? e.yaw : g.yaw_fixo) + g.orient;
             double ang = angle_from_axis(axis, src - e.pos);
             if (g.abertura >= 360 || ang <= g.abertura / 2.0 + 1e-6) { best = &g; dc.ang = ang; break; }
             char b[160];
-            std::snprintf(b, sizeof(b), "anteparo não cobre: impacto a %.1f° do eixo > %.1f° (metade de %d°)", ang, g.abertura / 2.0, g.abertura);
+            std::snprintf(b, sizeof(b), "guarda não cobre: impacto a %.1f° do eixo > %.1f° (metade de %d°)", ang, g.abertura / 2.0, g.abertura);
             guard_note = b;
             dc.ang = ang;
         }
@@ -828,6 +828,50 @@ void Runtime::process(const QItem& q) {
     }
 }
 
+void Runtime::vigiar_trecho(Entity& e, const Vec3& old, int64_t t_old, int64_t t) {
+        for (auto& wk : watches_) {
+        Watch& w = wk.second;
+        if (!w.viva || w.owner != e.id || w.restantes <= 0) continue;
+        if (!w.dentro) {
+            double best = -1;
+            for (auto& sb : arena_.superficies) {
+                if (sb.s != w.s) continue;
+                double u = segment_enter_t(old, e.pos, sb.box);
+                if (u >= 0 && (best < 0 || u < best)) best = u;
+            }
+            if (best >= 0) {
+                Vec3 p = old + (e.pos - old) * best;
+                int64_t tc = t_old + static_cast<int64_t>(std::llround(best * static_cast<double>(t - t_old)));
+                w.dentro = true;
+                w.restantes--;
+                Exec* ex = exec(w.exec);
+                if (ex && ex->alive) {
+                    const PNode& n = ex->plan->nodes[static_cast<size_t>(w.node)];
+                    Json d = Json::obj();
+                    d.set("no", n.id); d.set("rotulo", n.rotulo); d.set("ponto", jv(p)); d.set("t_cruzamento", tc); d.set("t", t);
+                    d.set("superficie", surface_name(w.s));
+                    emit("vigia.cruzou", d, ex->id);
+                    TokCtx c; c.tem_ponto = true; c.ponto = p;
+                    fire_out(*ex, w.node, 0, w.sinst, t, c);
+                }
+                continue;
+            }
+        }
+        w.dentro = arena_.surface_at(e.pos) == w.s;
+    }
+}
+
+void Runtime::sync_external(int id, Vec3 pos, double yaw, int64_t t) {
+    advance(t);
+    Entity* e = ent(id);
+    if (!e || e->em_mov) return;
+    Vec3 old = e->pos;
+    e->pos = arena_.clamp(pos, e->radius);
+    e->yaw = wrap_deg(yaw);
+    e->move_dir = Vec3();
+    vigiar_trecho(*e, old, t, t);
+}
+
 void Runtime::step_world(int64_t t) {
     if (t < now_) return;
     for (auto& e : ents_) {
@@ -845,36 +889,7 @@ void Runtime::step_world(int64_t t) {
             e.pos = arena_.clamp(e.pos + e.move_dir * (sp * dt), e.radius);
         }
         if (dt > 0) e.folego = std::min(100.0, e.folego + 12.0 * dt);
-        for (auto& wk : watches_) {
-            Watch& w = wk.second;
-            if (!w.viva || w.owner != e.id || w.restantes <= 0) continue;
-            if (!w.dentro) {
-                double best = -1;
-                for (auto& sb : arena_.superficies) {
-                    if (sb.s != w.s) continue;
-                    double u = segment_enter_t(old, e.pos, sb.box);
-                    if (u >= 0 && (best < 0 || u < best)) best = u;
-                }
-                if (best >= 0) {
-                    Vec3 p = old + (e.pos - old) * best;
-                    int64_t tc = e.last_t + static_cast<int64_t>(std::llround(best * static_cast<double>(t - e.last_t)));
-                    w.dentro = true;
-                    w.restantes--;
-                    Exec* ex = exec(w.exec);
-                    if (ex && ex->alive) {
-                        const PNode& n = ex->plan->nodes[static_cast<size_t>(w.node)];
-                        Json d = Json::obj();
-                        d.set("no", n.id); d.set("rotulo", n.rotulo); d.set("ponto", jv(p)); d.set("t_cruzamento", tc); d.set("t", t);
-                        d.set("superficie", surface_name(w.s));
-                        emit("vigia.cruzou", d, ex->id);
-                        TokCtx c; c.tem_ponto = true; c.ponto = p;
-                        fire_out(*ex, w.node, 0, w.sinst, t, c);
-                    }
-                    continue;
-                }
-            }
-            w.dentro = arena_.surface_at(e.pos) == w.s;
-        }
+        vigiar_trecho(e, old, e.last_t, t);
         e.last_t = t;
     }
     now_ = t;

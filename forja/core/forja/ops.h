@@ -12,7 +12,7 @@
 namespace forja {
 
 enum class OpKind : uint8_t {
-    Ativar, Deslocar, Retornar, Marca, Anel, Sondar, Vigiar, Anteparo, Amparo,
+    Ativar, Deslocar, Retornar, Marca, Anel, Sondar, Vigiar, Guarda, Amparo,
     Janela, Esperar, Repetir, Reunir, Encerrar, Incorporar, Planejada
 };
 

@@ -114,8 +114,8 @@ std::vector<OpDef> build() {
         v.push_back(o);
     }
     {
-        OpDef o; o.nome = "lastro.anteparo"; o.kind = OpKind::Anteparo; o.fundamento = "Lastro";
-        o.rotulo = "Anteparo"; o.descricao = "Defesa direcional no autor: absorve impactos que chegam dentro da abertura e se desfaz ao gastar as cargas.";
+        OpDef o; o.nome = "lastro.guarda"; o.kind = OpKind::Guarda; o.fundamento = "Lastro";
+        o.rotulo = "Guarda direcional"; o.descricao = "Defesa direcional no autor: absorve impactos que chegam dentro da abertura e se desfaz ao gastar as cargas.";
         o.saidas = {out("ao_absorver", "ao absorver um impacto", true), out("ao_romper", "ao se desfazer", true),
                     out("ao_expirar", "se expirar intacto", true), out("ao_terminar", "quando o anteparo terminar")};
         o.params = {pint("abertura_graus", "abertura total", "graus", 10, 360, 90),
@@ -403,8 +403,8 @@ std::string describe_node(const OpDef& op, const Json& p) {
         }
         case OpKind::Sondar: return "verifica se " + anchor_text(S("ancora")) + " há " + surf_text(S("superficie"));
         case OpKind::Vigiar: return "por " + fmt_ms(I("duracao_ms")) + ", vigia quando o autor cruza para " + surf_text(S("superficie"));
-        case OpKind::Anteparo:
-            r = "anteparo de " + std::to_string(I("abertura_graus")) + "° ";
+        case OpKind::Guarda:
+            r = "guarda de " + std::to_string(I("abertura_graus")) + "° ";
             r += I("orientacao_graus") == 0 ? "à frente" : ("girado " + std::to_string(I("orientacao_graus")) + "°");
             r += ", gesto " + S("gesto") + " (" + fmt_ms(I("preparo_ms")) + "), dura " + fmt_ms(I("duracao_ms"));
             r += ", " + std::to_string(I("cargas")) + (I("cargas") == 1 ? " carga" : " cargas");

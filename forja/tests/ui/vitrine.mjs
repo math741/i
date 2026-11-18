@@ -39,7 +39,7 @@ await p.evaluate(async () => {
   await o({ cmd: 'no.adicionar', criacao: es, op: 'limiar.anel', p: { ancora: 'evento', raio_cm: 140, preparo_ms: 200 }, rotulo: 'Respingo', ligar_de: v.no, porta: 'ao_entrar' });
   await o({ cmd: 'salvar', criacao: es });
   const an = (await o({ cmd: 'criar', nome: 'Anteparo' })).criacao;
-  await o({ cmd: 'no.adicionar', criacao: an, op: 'lastro.anteparo', p: { abertura_graus: 120, gesto: 'bracos_cruzados', preparo_ms: 300 }, rotulo: 'Anteparo', ligar_de: 'n0', porta: 'ao_ativar' });
+  await o({ cmd: 'no.adicionar', criacao: an, op: 'lastro.guarda', p: { abertura_graus: 120, gesto: 'bracos_cruzados', preparo_ms: 300 }, rotulo: 'Anteparo', ligar_de: 'n0', porta: 'ao_ativar' });
   await o({ cmd: 'salvar', criacao: an });
   window.__ids = { tr, es, an };
 });

@@ -189,7 +189,7 @@ static Json* find_node(Json& beh, const std::string& id) {
 static const char* completion_port(OpKind k) {
     switch (k) {
         case OpKind::Deslocar: case OpKind::Retornar: return "ao_chegar";
-        case OpKind::Anel: case OpKind::Incorporar: case OpKind::Anteparo: case OpKind::Vigiar: case OpKind::Repetir: case OpKind::Amparo: return "ao_terminar";
+        case OpKind::Anel: case OpKind::Incorporar: case OpKind::Guarda: case OpKind::Vigiar: case OpKind::Repetir: case OpKind::Amparo: return "ao_terminar";
         case OpKind::Marca: case OpKind::Esperar: return "depois";
         default: return nullptr;
     }

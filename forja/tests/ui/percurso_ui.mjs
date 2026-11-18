@@ -187,7 +187,7 @@ try {
   console.log('[5] Bruno cria Anteparo na oficina; equipamentos pelas listas do saguão');
   await bruno.click('[data-testid=abrir-oficina]'); await sleep(800);
   await novaCriacao(bruno, 'Anteparo');
-  await bruno.click('[data-testid="peca-lastro.anteparo"]'); await aguardarSim(bruno);
+  await bruno.click('[data-testid="peca-lastro.guarda"]'); await aguardarSim(bruno);
   await bruno.selectOption('#ofNos select[data-p=gesto]', 'bracos_cruzados'); await aguardarSim(bruno);
   await salvar(bruno);
   await bruno.click('[data-testid=fechar-oficina]'); await sleep(800);
