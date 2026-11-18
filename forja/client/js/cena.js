@@ -10,8 +10,10 @@ import { RenderPass } from '../vendor/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from '../vendor/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from '../vendor/addons/postprocessing/OutputPass.js';
 import { Ambiente, EfeitoArea, EfeitoGuarda, EfeitoRastro } from './efeitos.js';
+import { AuraMateria } from './materia.js';
 import { bezier } from './modelo.js';
 import { animar, criarAlvo, criarOperador, posarDeslocamento } from './personagem.js';
+import { criarHumano, genomaDe } from './humano.js';
 
 const M = (cm) => cm / 100;
 export const g2t = (x, y, z = 0) => new THREE.Vector3(M(x), M(z), M(y));
@@ -136,6 +138,7 @@ export class Cena {
     this.scene.add(this.objetos.gizmos);
     this.depuracao = { trajetoria: true, volumes: true, duracao: true };
     this.aparencias = new Map();
+    this.estiloPersonagem = 'humano';
     this.contatos = [];
     this.luzes = [];
     for (let i = 0; i < 3; i++) { const l = new THREE.PointLight(0xff8a4a, 0, 9, 2); this.scene.add(l); this.luzes.push(l); }
@@ -269,7 +272,7 @@ export class Cena {
   _ent(id, info) {
     let o = this.objetos.ent.get(id);
     if (!o) {
-      o = info.tipo === 'alvo' ? criarAlvo() : criarOperador(info.time);
+      o = info.tipo === 'alvo' ? criarAlvo() : this.estiloPersonagem === 'operador' ? criarOperador(info.time) : criarHumano(info.forma || genomaDe(info.nome || 'jogador' + id));
       o.userData.id = id;
       o.traverse((x) => { if (x.isMesh) x.castShadow = this.qualidade === 'alto'; });
       const aberto = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.5, 40), new THREE.MeshBasicMaterial({ color: 0xff3b2f, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
@@ -321,13 +324,14 @@ export class Cena {
       const est = {
         tServ, velW: u.velW, folego: inf.folego, olhar, solo: (x, z) => (Math.abs(z) < 0.7 ? -0.22 : 0),
         mov: mv && tServ >= mv.t0 && tServ <= mv.t1 + 40 ? { u: (tServ - mv.t0) / Math.max(1, mv.t1 - mv.t0), recuo: ((mv.para[0] - mv.de[0]) * Math.cos(yr) + (mv.para[1] - mv.de[1]) * Math.sin(yr)) < -30 } : null,
-        prep: prepA ? { k: (tServ - prepA.t) / Math.max(1, prepA.t_contato - prepA.t), centro: c3(prepA.centro) } : null,
-        contato: contA ? { dt: tServ - (contA.t_contato_real ?? contA.t_contato), centro: c3(contA.centro) } : null,
+        prep: prepA ? { k: (tServ - prepA.t) / Math.max(1, prepA.t_contato - prepA.t), centro: c3(prepA.centro), materia: this._materia(prepA) } : null,
+        contato: contA ? { dt: tServ - (contA.t_contato_real ?? contA.t_contato), centro: c3(contA.centro), materia: this._materia(contA) } : null,
         recup: inf.recup && tServ < inf.recup,
         guarda: g ? { gesto: g.gesto, k: (tServ - g.t) / Math.max(1, g.t_ativa - g.t), absorveDt: g.ultima_absorcao ? tServ - g.ultima_absorcao.t : undefined, fonte: g.ultima_absorcao ? c3(g.ultima_absorcao.fonte) : null } : null,
         golpe: imp ? { dt: tServ - imp.t, fonte: c3(imp.centro) } : null,
       };
       const parada = (est.contato && est.contato.dt >= 0 && est.contato.dt < 70) || (est.golpe && est.golpe.dt >= 0 && est.golpe.dt < 90);
+      // a pausa de impacto vale para o autor do golpe no chão e para a vítima; o braço elástico também congela esticado
       animar(o, est, parada ? dt * 0.06 : dt);
       if (u.bR) { u.bR.pulso.getWorldPosition(u.maoW || (u.maoW = new THREE.Vector3())); }
       // sinal público de recuperação: anel vermelho pulsante nos pés (“aberto”)
@@ -341,13 +345,17 @@ export class Cena {
     this._luzesImpacto(tServ);
   }
 
+  _materia(x) { return x.materia || (this.aparencias.get(undefined) || {}).materia || null; }
+
   _areas(lista, tServ, mundo) {
     for (const a of lista) {
       let ef = this.objetos.areas.get(a.id);
       const agua = a.superficie === 'agua' || Math.abs(a.centro[1]) < 70;
       if (!ef) {
         const ap = this.aparencias.get(a.exec_digest) || this.aparencias.get(undefined) || {};
-        ef = new EfeitoArea(a, { qualidade: this.qualidade, cor: ap.cor, agua });
+        ef = new EfeitoArea(a, { qualidade: this.qualidade, cor: ap.cor, agua, materia: this._materia(a) });
+        ef.aura = new AuraMateria(ef.materia, { seed: a.id });
+        this.scene.add(ef.aura.g);
         ef.ultimo = a;
         this.scene.add(ef.g);
         this.objetos.areas.set(a.id, ef);
@@ -372,14 +380,15 @@ export class Cena {
       const fase = a.fase === 'preparo' && tServ >= a.t_contato ? 'contato' : a.fase === 'contato' && tServ >= a.t_fim ? 'fim' : a.fase;
       const autor = this.objetos.ent.get(a.autor);
       ef.atualizar(tServ, { fase, tc: a.t_contato_real, tf: a.t_fim_real, tcancel: a.t_fim_real, volumes: this.depuracao.volumes, mao: autor && autor.userData.maoW ? autor.userData.maoW : null });
-      if (!ef.vivo(tServ, a.t_fim_real) || (a.fase === 'cancelada' && tServ - (a.t_fim_real || 0) > 500)) { this.scene.remove(ef.g); this.objetos.areas.delete(id); }
+      if (ef.aura) ef.aura.atualizar(autor && autor.userData.maoW, fase === 'preparo' ? Math.min(1, (tServ - a.t) / Math.max(1, a.t_contato - a.t)) : 0, tServ);
+      if (!ef.vivo(tServ, a.t_fim_real) || (a.fase === 'cancelada' && tServ - (a.t_fim_real || 0) > 500)) { this.scene.remove(ef.g); if (ef.aura) this.scene.remove(ef.aura.g); this.objetos.areas.delete(id); }
     }
   }
 
   _guardas(lista, tServ, mundo) {
     for (const g of lista) {
       let ef = this.objetos.guardas.get(g.id);
-      if (!ef) { ef = new EfeitoGuarda(g, { qualidade: this.qualidade }); ef.cargas0 = g.cargas; this.scene.add(ef.g); this.objetos.guardas.set(g.id, ef); this.audio.tom(g2t(0, 0, 100), 500, 900, 0.18, 0.05, 'triangle'); }
+      if (!ef) { ef = new EfeitoGuarda(g, { qualidade: this.qualidade, materia: this._materia(g) }); ef.cargas0 = g.cargas; this.scene.add(ef.g); this.objetos.guardas.set(g.id, ef); this.audio.tom(g2t(0, 0, 100), 500, 900, 0.18, 0.05, 'triangle'); }
       ef.ultimo = g;
       if (g.absorcoes && g.absorcoes.length > (ef.nAbs || 0)) { ef.nAbs = g.absorcoes.length; this.audio.tom(ef.g.position, 1800, 2700, 0.25, 0.15, 'square'); }
       if (g.fim && !ef.somFim) { ef.somFim = true; if (g.fim.motivo === 'rompida') this.audio.ruido(ef.g.position, 0.4, 2600, 0.35); }
@@ -403,15 +412,15 @@ export class Cena {
       for (let i = 0; i <= 28; i++) { const q = bezier(mv.de, mv.ctrl, mv.para, i / 28); pts.push(g2t(q[0], q[1], 0)); }
       const yb = this.objetos.ent.get(ent) ? -this.objetos.ent.get(ent).rotation.y : 0;
       const recuo = ((mv.para[0] - mv.de[0]) * Math.cos(yb) + (mv.para[1] - mv.de[1]) * Math.sin(yb)) < -30;
-      const ef = new EfeitoRastro(mv, pts, { cor: recuo ? 0xc58bff : 0x8fe8ff, qualidade: this.qualidade, agua: pts.some((p) => Math.abs(p.z) < 0.7) });
+      const ef = new EfeitoRastro(mv, pts, { cor: recuo ? 0xc58bff : 0x8fe8ff, qualidade: this.qualidade, agua: pts.some((p) => Math.abs(p.z) < 0.7), materia: recuo ? null : this._materia(mv) });
       const grupo = new THREE.Group();
       grupo.add(ef.g);
       ef.fantasmas = [];
       const base = this.objetos.ent.get(ent);
       if (base && base.userData.tipo === 'operador' && this.depuracao.trajetoria !== false) {
-        const matF = new THREE.MeshBasicMaterial({ color: recuo ? 0xc58bff : 0x8fe8ff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
+        const matF = new THREE.MeshBasicMaterial({ color: recuo ? 0xc58bff : (this._materia(mv) ? new THREE.Color(this._materia(mv).cor) : 0x8fe8ff), transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
         for (const f of [0.2, 0.4, 0.6, 0.8]) {
-          const fan = criarOperador(base.userData.time, { simples: true });
+          const fan = base.userData.humano ? criarHumano(base.userData.genoma) : criarOperador(base.userData.time, { simples: true });
           const q0 = bezier(mv.de, mv.ctrl, mv.para, f), q1 = bezier(mv.de, mv.ctrl, mv.para, Math.min(1, f + 0.05));
           fan.position.copy(g2t(q0[0], q0[1], 0));
           fan.rotation.y = -Math.atan2(q1[1] - q0[1], q1[0] - q0[0]);

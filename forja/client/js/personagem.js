@@ -371,7 +371,11 @@ function orientarMundo(osso, qMundo) {
 // est: { tServ, velW (Vector3 m/s, mundo), mov{u, fim}, prep{k, centro}, contato{dt, centro}, recup, guarda{gesto,k,absorveDt,fonte},
 //        golpe{dt, fonte}, folego, olhar (Vector3 mundo), solo(x,z)->altura }
 export function animar(obj, est, dt) {
-  const u = obj.userData, A = u.anim;
+  const u = obj.userData;
+  if (!u.anim) u.anim = novoEstado();
+  const A = u.anim;
+  const D = u.dims || { coxa: 0.44, canela: 0.42, braco: 0.29, ante: 0.29, quadril: 0.97, larg: 0.115, tornozelo: 0.065, ombroY: 0.3, escala: 1 };
+  const E = D.escala;
   A.t += dt;
   if (u.tipo === 'alvo') {
     const imp = est.golpe && est.golpe.dt < 2500 ? Math.exp(-est.golpe.dt / 500) * Math.sin(est.golpe.dt / 55) : 0;
@@ -435,9 +439,9 @@ export function animar(obj, est, dt) {
   const tor = passoMola(A.torcao, torcao, dt, 4.5, 0.7);
   // ---------- pés: controlador de passos com plantio no mundo ----------
   if (!A.pes) {
-    A.pes = [u.pL, u.pR].map((p) => { const w = base.clone().addScaledVector(dir, 0.11 * p.s); w.y = solo(w.x, w.z); return { plant: w, swing: null, ultimo: -1 }; });
+    A.pes = [u.pL, u.pR].map((p) => { const w = base.clone().addScaledVector(dir, D.larg * p.s); w.y = solo(w.x, w.z); return { plant: w, swing: null, ultimo: -1 }; });
   }
-  const desejo = (i) => { const p = i === 0 ? u.pL : u.pR; const w = base.clone().addScaledVector(dir, 0.115 * p.s).addScaledVector(velW, 0.2).addScaledVector(fwd, i === 0 ? 0.02 : -0.02); w.y = solo(w.x, w.z); return w; };
+  const desejo = (i) => { const p = i === 0 ? u.pL : u.pR; const w = base.clone().addScaledVector(dir, D.larg * p.s).addScaledVector(velW, 0.2).addScaledVector(fwd, i === 0 ? 0.02 : -0.02); w.y = solo(w.x, w.z); return w; };
   if (kMov) {
     // em deslocamento os pés não acompanham: recolhidos; replanta ao aterrissar
     for (let i = 0; i < 2; i++) { A.pes[i].swing = null; A.pes[i].plant = desejo(i); A.pes[i].voo = true; }
@@ -482,8 +486,8 @@ export function animar(obj, est, dt) {
   const abertura = pW[0].distanceTo(pW[1]);
   const apoio = A.pes[0].swing ? 1 : A.pes[1].swing ? -1 : 0;
   const soloMedio = (pW[0].y + pW[1].y) / 2;
-  const bob = -Math.max(0, abertura - 0.42) * 0.22 + (A.pes.some((p) => p.swing) ? 0.012 : 0) * Math.min(1, spd);
-  const yQuadril = 0.97 - ag + bob + soloMedio - base.y + 0.008 * resp;
+  const bob = -Math.max(0, abertura - 0.42 * E) * 0.22 + (A.pes.some((p) => p.swing) ? 0.012 : 0) * Math.min(1, spd);
+  const yQuadril = D.quadril - ag * E + bob + soloMedio - base.y + 0.008 * resp;
   u.quadril.position.set(rec.x * 0.6 - lS * 0.08, yQuadril, rec.z * 0.6 + apoio * 0.035 * (spd < 3 ? 1 : 0.4));
   u.quadril.rotation.set(-lL * 0.5 + apoio * 0.05, tor * 0.25 - (pW[0].clone().sub(pW[1]).dot(fwd)) * 0.35, -lS * 0.38);
   u.coluna.rotation.set(-lL * 0.4, tor * 0.45 + (pW[0].clone().sub(pW[1]).dot(fwd)) * 0.55, -lS * 0.32);
@@ -493,15 +497,15 @@ export function animar(obj, est, dt) {
   const pernas = [u.pL, u.pR];
   for (let i = 0; i < 2; i++) {
     const p = pernas[i];
-    let alvo = pW[i].clone(); alvo.y += 0.065;
+    let alvo = pW[i].clone(); alvo.y += D.tornozelo;
     if (kMov) {
       // pose de voo: perna da frente recolhida, de trás estendida (no espaço do quadril)
-      const loc = i === 0 ? V(0.28, -0.52, 0.12 * p.s) : V(-0.32, -0.72, 0.1 * p.s);
+      const loc = (i === 0 ? V(0.28, -0.52, 0.12 * p.s) : V(-0.32, -0.72, 0.1 * p.s)).multiplyScalar(E);
       const ant = movU < 0.15 ? 0 : suave((movU - 0.15) / 0.2) * (1 - suave((movU - 0.85) / 0.15));
       const wv = u.quadril.localToWorld(loc.clone());
       alvo = alvo.lerp(wv, ant);
     }
-    ik2(u.quadril, p.coxa, p.joelho, 0.44, 0.42, alvo, V(1, 0, 0.12 * p.s), +1);
+    ik2(u.quadril, p.coxa, p.joelho, D.coxa, D.canela, alvo, V(1, 0, 0.12 * p.s), +1);
     // pé plano no chão; rola o calcanhar na saída do passo
     const sw = A.pes[i].swing;
     const rola = sw ? -0.55 * Math.sin(Math.PI * clamp01(sw.t * 1.4)) * (1 - clamp01(sw.t)) + 0.25 * Math.sin(Math.PI * clamp01((sw.t - 0.6) / 0.4)) : 0;
@@ -514,36 +518,46 @@ export function animar(obj, est, dt) {
     const s = b.s, S = b.ombro.position;
     const balanco = (s < 0 ? ladoF[1] - ladoF[0] : ladoF[0] - ladoF[1]) * (0.5 + 0.25 * Math.min(1, spd / 3));
     const corre = suave((spd - 2.8) / 2);
-    let m = V(S.x + 0.03 + balanco * 0.9, S.y - lerp(0.55, 0.36, corre), S.z + s * (0.05 + 0.04 * corre));
+    const Rel = (x, y, z) => V(S.x + x * E, S.y + y * E, S.z + z * E);
+    let m = Rel(0.03 + balanco * 0.9, -lerp(0.55, 0.36, corre), s * (0.05 + 0.04 * corre));
     m.y += Math.max(0, balanco) * 0.25;
     let curl = lerp(0.35, 0.8, corre);
     let punho = 0;
+    let estica = false;
     const blend = (alvo, k) => { m.lerp(alvo, k); };
-    if (kMov) { const ant = movU < 0.18 ? suave(movU / 0.18) : 1; blend(recuoMov ? V(S.x + 0.34, S.y - 0.16, S.z + s * 0.12) : V(S.x - 0.32, S.y - 0.32, S.z + s * 0.28), ant); curl = lerp(curl, recuoMov ? 0.0 : 0.2, ant); }
+    if (kMov) { const ant = movU < 0.18 ? suave(movU / 0.18) : 1; blend(recuoMov ? Rel(0.34, -0.16, s * 0.12) : Rel(-0.32, -0.32, s * 0.28), ant); curl = lerp(curl, recuoMov ? 0.0 : 0.2, ant); }
     if (est.prep && kPrep > 0) {
       if (arremesso) {
-        if (s > 0) { blend(V(S.x - 0.26, S.y + 0.2, S.z + 0.08), kPrep); curl = lerp(curl, 0.5, kPrep); punho = -0.6 * kPrep; }
-        else { blend(V(S.x + dirA.x * 0.52, S.y - 0.02, S.z + dirA.z * 0.52), kPrep); curl = lerp(curl, 0.05, kPrep); punho = lerp(punho, -0.9, kPrep); }
+        const elasticoP = ((est.prep.materia && est.prep.materia.elast) || 0) > 0.4;
+        if (s > 0 && elasticoP && est.prep.k > 0.76 && focoA) {
+          // braço elástico é o próprio projétil: estica nos últimos 24% do preparo e chega no contato
+          const pv = suave((est.prep.k - 0.76) / 0.24);
+          blend(Rel(-0.26, 0.2, 0.08), 1 - pv);
+          blend(u.peito.worldToLocal(focoA.clone().add(V(0, 0.55, 0))), pv); curl = 1; estica = true;
+        } else if (s > 0) { blend(Rel(-0.26, 0.2, 0.08), kPrep); curl = lerp(curl, 0.5, kPrep); punho = -0.6 * kPrep; }
+        else { blend(Rel(dirA.x * 0.52, -0.02, dirA.z * 0.52), kPrep); curl = lerp(curl, 0.05, kPrep); punho = lerp(punho, -0.9, kPrep); }
       } else {
-        if (s > 0) { blend(V(S.x - 0.2, S.y + 0.16, S.z + 0.12), kPrep); curl = lerp(curl, 0.55, kPrep); punho = -0.5 * kPrep; }
-        else { blend(V(S.x + 0.34, S.y - 0.12, S.z + 0.12), kPrep); curl = lerp(curl, 0.1, kPrep); }
+        if (s > 0) { blend(Rel(-0.2, 0.16, 0.12), kPrep); curl = lerp(curl, 0.55, kPrep); punho = -0.5 * kPrep; }
+        else { blend(Rel(0.34, -0.12, 0.12), kPrep); curl = lerp(curl, 0.1, kPrep); }
       }
     }
     if (kGolpeArea > 0) {
       if (arremesso) {
-        if (s > 0) { blend(V(S.x + dirA.x * 0.64, S.y + 0.02, S.z + dirA.z * 0.64), kGolpeArea); curl = lerp(curl, 0.0, kGolpeArea); punho = lerp(punho, -1.2, kGolpeArea); }
-        else blend(V(S.x - 0.2, S.y - 0.3, S.z - 0.25), kGolpeArea);
+        const elastico = ((est.contato && est.contato.materia && est.contato.materia.elast) || 0) > 0.4;
+        if (s > 0 && elastico && focoA) { const fica = cdt < 110 ? 1 : kGolpeArea; blend(u.peito.worldToLocal(focoA.clone().add(V(0, 0.55, 0))), fica); curl = 1; estica = fica > 0.5; }
+        else if (s > 0) { blend(Rel(dirA.x * 0.64, 0.02, dirA.z * 0.64), kGolpeArea); curl = lerp(curl, 0.0, kGolpeArea); punho = lerp(punho, -1.2, kGolpeArea); }
+        else blend(Rel(-0.2, -0.3, -0.25), kGolpeArea);
       } else {
         if (s > 0) { const chao = u.peito.worldToLocal(base.clone().addScaledVector(fwd, 0.52).addScaledVector(dir, 0.12).setY(solo(base.x, base.z) + 0.05)); blend(chao, kGolpeArea); curl = lerp(curl, 0.95, kGolpeArea); punho = lerp(punho, 0.3, kGolpeArea); }
-        else blend(V(S.x - 0.05, S.y - 0.18, S.z - 0.32), kGolpeArea);
+        else blend(Rel(-0.05, -0.18, -0.32), kGolpeArea);
       }
     }
     if (est.guarda && kGuarda > 0) {
       const g = est.guarda.gesto;
-      if (g === 'bracos_cruzados') { blend(s < 0 ? V(0.36, 0.42, 0.1) : V(0.33, 0.47, -0.1), kGuarda); curl = lerp(curl, 0.9, kGuarda); punho = lerp(punho, 0.25, kGuarda); }
-      else if (g === 'palma_frente') { if (s > 0) { blend(V(0.62, 0.33, 0.1), kGuarda); curl = lerp(curl, 0.0, kGuarda); punho = lerp(punho, -1.35, kGuarda); } else { blend(V(0.22, 0.2, -0.08), kGuarda); curl = lerp(curl, 0.85, kGuarda); } }
-      else if (g === 'ombro') { if (s < 0) { blend(V(0.24, 0.5, -0.06), kGuarda); curl = lerp(curl, 0.9, kGuarda); } else blend(V(-0.12, -0.2, 0.3), kGuarda); }
-      else { blend(V(S.x + 0.05, S.y + 0.15, S.z + s * 0.45), kGuarda); curl = lerp(curl, 0.0, kGuarda); }
+      if (g === 'bracos_cruzados') { blend(s < 0 ? Rel(0.36, 0.12, 0.315) : Rel(0.33, 0.17, -0.315), kGuarda); curl = lerp(curl, 0.9, kGuarda); punho = lerp(punho, 0.25, kGuarda); }
+      else if (g === 'palma_frente') { if (s > 0) { blend(Rel(0.62, 0.03, -0.115), kGuarda); curl = lerp(curl, 0.0, kGuarda); punho = lerp(punho, -1.35, kGuarda); } else { blend(Rel(0.22, -0.1, 0.135), kGuarda); curl = lerp(curl, 0.85, kGuarda); } }
+      else if (g === 'ombro') { if (s < 0) { blend(Rel(0.24, 0.2, 0.155), kGuarda); curl = lerp(curl, 0.9, kGuarda); } else blend(Rel(-0.12, -0.5, 0.085), kGuarda); }
+      else { blend(Rel(0.05, 0.15, s * 0.45), kGuarda); curl = lerp(curl, 0.0, kGuarda); }
     }
     if (kRecup) {
       const p = s < 0 ? u.pL : u.pR;
@@ -551,15 +565,22 @@ export function animar(obj, est, dt) {
       const kj = p.joelho.getWorldPosition(new THREE.Vector3()).addScaledVector(fwd, 0.09).add(V(0, 0.04, 0));
       blend(u.peito.worldToLocal(kj), 0.92); curl = lerp(curl, 0.6, 0.9);
     }
-    if (gdt < 700) { const k = Math.exp(-gdt / 220); blend(V(S.x - 0.15, S.y + 0.1 * (s > 0 ? 1 : 0.4), S.z + s * 0.4), k * 0.8); curl = lerp(curl, 0.1, k); }
-    L.push({ b, m, curl, punho });
+    if (gdt < 700) { const k = Math.exp(-gdt / 220); blend(Rel(-0.15, 0.1 * (s > 0 ? 1 : 0.4), s * 0.4), k * 0.8); curl = lerp(curl, 0.1, k); }
+    L.push({ b, m, curl, punho, estica });
   }
   // suaviza as mãos (inércia) e resolve o IK
   if (!A.maos) A.maos = L.map((x) => molaV(x.m));
+  if (!A.estica) A.estica = [mola(1), mola(1)];
   L.forEach((x, i) => {
-    const mm = passoMolaV(A.maos[i], x.m, dt, kGolpeArea > 0.2 || gdt < 300 ? 9 : 5.5, 0.8);
+    const mm = passoMolaV(A.maos[i], x.m, dt, x.estica ? 40 : kGolpeArea > 0.2 || gdt < 300 ? 9 : 5.5, x.estica ? 0.85 : 0.8);
     const w = u.peito.localToWorld(mm.clone());
-    ik2(u.peito, x.b.ombro, x.b.cot, 0.29, 0.29, w, V(-0.7, -0.35, 0.65 * x.b.s), -1);
+    // braço elástico: os ossos esticam para alcançar o alvo e voltam com mola (oscila na volta)
+    let alvoSc = 1;
+    if (x.estica) { x.b.ombro.updateWorldMatrix(true, false); const sh = x.b.ombro.getWorldPosition(new THREE.Vector3()); alvoSc = Math.max(1, sh.distanceTo(w) / ((D.braco + D.ante) * 0.99)); }
+    const sc = Math.max(0.6, passoMola(A.estica[i], alvoSc, dt, x.estica ? 30 : 3.2, x.estica ? 0.9 : 0.22));
+    x.b.ombro.scale.set(1, sc, 1); x.b.cot.scale.set(1, sc > 1 ? 1 : 1, 1);
+    x.b.pulso.scale.set(1, 1 / sc, 1);
+    ik2(u.peito, x.b.ombro, x.b.cot, D.braco * sc, D.ante * sc, w, V(-0.7, -0.35, 0.65 * x.b.s), -1);
     const cu = passoMola(A.curl[i], x.curl, dt, 7, 0.8);
     const pu = passoMola(A.punho[i], x.punho, dt, 6, 0.8);
     x.b.pulso.rotation.set(0, 0, pu);
@@ -592,17 +613,17 @@ export function animar(obj, est, dt) {
   // ---------- emissivos e reservatório ----------
   const brilho = 0.45 + 4.5 * kPrep + 5 * kGolpeArea + 2.5 * kMov + 1.5 * kGuarda;
   for (const e of u.emissores) e.material.emissiveIntensity = lerp(e.material.emissiveIntensity, brilho, 0.35);
-  for (const d of u.dutos) d.material.emissiveIntensity = 0.5 + 0.6 * Math.max(0, Math.sin(A.t * 6 - 1)) * (kPrep + kMov + 0.2) + 2 * kGolpeArea;
+  for (const d of u.dutos || []) d.material.emissiveIntensity = 0.5 + 0.6 * Math.max(0, Math.sin(A.t * 6 - 1)) * (kPrep + kMov + 0.2) + 2 * kGolpeArea;
   if (u.pl) {
     const hit = gdt < 160 ? 1 - gdt / 160 : 0;
     u.pl.emissive.setRGB(1, 0.15, 0.08); u.pl.emissiveIntensity = hit * hit * 0.9;
-    u.pl2.emissive.setRGB(1, 0.15, 0.08); u.pl2.emissiveIntensity = hit * hit * 0.7;
-    u.emFio.emissiveIntensity = 0.9 + 2.5 * kPrep + 3 * kGolpeArea + 1.5 * kMov + Math.sin(A.t * 3) * 0.25;
+    if (u.pl2) { u.pl2.emissive.setRGB(1, 0.15, 0.08); u.pl2.emissiveIntensity = hit * hit * 0.7; }
+    if (u.emFio) u.emFio.emissiveIntensity = 0.9 + 2.5 * kPrep + 3 * kGolpeArea + 1.5 * kMov + Math.sin(A.t * 3) * 0.25;
   }
   const f = clamp01((est.folego ?? 100) / 100);
-  u.liquido.scale.y = Math.max(0.03, f);
-  u.liquido.position.y = -0.125 + 0.125 * Math.max(0.03, f);
-  u.visor.material.emissiveIntensity = gdt < 300 ? (Math.sin(gdt / 18) > 0 ? 0.3 : 4) : kRecup ? 0.8 + 0.5 * Math.sin(A.t * 9) : 2.4 + kPrep * 2;
+  if (u.liquido) { u.liquido.scale.y = Math.max(0.03, f); u.liquido.position.y = -0.125 + 0.125 * Math.max(0.03, f); }
+  if (u.olhos) for (const o of u.olhos) { o.rotation.set(0, -Math.PI / 2 + oy * 0.25, op * 0.2); }
+  if (u.visor) u.visor.material.emissiveIntensity = gdt < 300 ? (Math.sin(gdt / 18) > 0 ? 0.3 : 4) : kRecup ? 0.8 + 0.5 * Math.sin(A.t * 9) : 2.4 + kPrep * 2;
   // ---------- faixas de tecido (verlet) ----------
   for (const fx of u.faixas) {
     fx.ancora.updateWorldMatrix(true, false);

@@ -10,6 +10,8 @@ html, body { margin: 0; height: 100%; background: #07090b; color: #e7e4dc; font:
 #painel { position: absolute; left: 12px; top: 12px; width: 250px; background: rgba(18,21,26,.9); border: 1px solid #2a3038; border-radius: 10px; padding: 10px; }
 #painel h1 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 8px; color: #9aa1a8; }
 #clipes button, .ctl button { display: block; width: 100%; text-align: left; margin: 3px 0; background: #1b2128; color: #e7e4dc; border: 1px solid #333c46; border-radius: 6px; padding: 6px 8px; cursor: pointer; font: inherit; }
+#materias button { display: inline-block; width: auto; margin: 2px; background: #1b2128; color: #e7e4dc; border: 1px solid #333c46; border-radius: 6px; padding: 4px 7px; cursor: pointer; font: inherit; font-size: 12px; }
+#materias button.sel { border-color: #86ff2e; }
 #clipes button.sel { border-color: #ffb347; background: #2a2418; }
 .ctl { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .ctl button { text-align: center; }
@@ -20,8 +22,8 @@ html, body { margin: 0; height: 100%; background: #07090b; color: #e7e4dc; font:
 </head>
 <body>
 <canvas id="vista"></canvas>
-<div id="painel"><h1>Estúdio de animação</h1><div id="clipes"></div>
-  <div class="ctl"><button id="lento">Câmera lenta</button><button id="pausar">Pausar</button><button id="qual" style="grid-column:1/3">Gráficos: alto</button></div></div>
+<div id="painel"><h1>Estúdio de animação</h1><div id="clipes"></div><h1 style="margin-top:10px">Matéria</h1><div id="materias" class="mats"></div>
+  <div class="ctl"><button id="lento">Câmera lenta</button><button id="pausar">Pausar</button><button id="qual">Gráficos: alto</button><button id="pers">Personagem aleatório</button></div></div>
 <div id="tempo"></div><div id="titulo"></div>
 <div id="dica">arraste para orbitar · roda para aproximar</div>
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>

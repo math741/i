@@ -3,6 +3,7 @@
 // instante. Os sinais públicos (contorno do anúncio, setor da defesa, anel de recuperação) têm forma e
 // contraste fixos; a cor personalizada só tinge a energia interna.
 import * as THREE from 'three';
+import { CamadasMateria, ProjetilMateria, normalizar } from './materia.js';
 
 const NOISE = `
 float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
@@ -127,8 +128,10 @@ function nuvem(n, cor, aditivo) {
 
 // Área: anúncio (preparo), contato (clarão, onda, coluna, faíscas, detritos, poeira/respingo) e marca no chão.
 export class EfeitoArea {
-  constructor(a, { qualidade, cor, agua }) {
+  constructor(a, { qualidade, cor, agua, materia }) {
     this.a = a;
+    this.materia = normalizar(materia || (cor ? { cor } : null));
+    cor = this.materia.cor;
     this.seed = a.id * 7.31 + 1;
     this.alto = qualidade === 'alto';
     this.agua = agua;
@@ -158,7 +161,13 @@ export class EfeitoArea {
     this.rach.rotation.x = -Math.PI / 2; this.rach.position.y = 0.014; this.rach.material.uniforms.uSeed.value = this.seed % 10;
     this.nFl = this.alto ? 56 : 18;
     this.fluxo = nuvem(this.nFl, cor || 0xffb060, true);
-    this.raio = null;
+    this.camadas = new CamadasMateria(this.materia, R, { qualidade, seed: this.seed, agua });
+    this.projetil = new ProjetilMateria(this.materia, { seed: this.seed });
+    this.onda.material.uniforms.uCor.value.set(this.materia.cor).lerp(new THREE.Color('#ffffff'), 0.45);
+    this.coluna.material.uniforms.uCor.value.set(this.materia.cor);
+    this.faiscas.material.uniforms.uCor.value.set(this.materia.cor).lerp(new THREE.Color('#ffffff'), 0.3);
+    if (this.materia.tox + this.materia.visc > 0.9 || this.materia.temp < -0.4) this.nD = Math.round(this.nD * 0.3);
+    this.g.add(this.camadas.g, this.projetil.g);
     this.g.add(this.disco, this.vol, this.onda, this.coluna, this.decal, this.rach, this.fluxo, this.faiscas, this.poeira, this.detritos);
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._e = new THREE.Euler(); this._v = new THREE.Vector3(); this._s = new THREE.Vector3(1, 1, 1);
   }
@@ -183,24 +192,16 @@ export class EfeitoArea {
       fl.aA.setX(i, Math.sin(p * Math.PI) * (0.25 + 0.75 * kp));
     }
     fl.position.needsUpdate = fl.aTam.needsUpdate = fl.aA.needsUpdate = true;
-    // raio da mão até a área (ataque à distância), alguns ms antes e depois do contato
+    // projétil da mão até a área (ataque à distância): tipo escolhido pela matéria dominante
     const tcc = tc ?? a.t_contato;
-    const mostraRaio = mao && longe && t >= tcc - 110 && t <= tcc + 130 && fase !== 'cancelada';
-    if (this.raio) { this.g.remove(this.raio); this.raio.geometry.dispose(); this.raio = null; }
-    if (mostraRaio) {
+    if (mao && longe && fase !== 'cancelada') {
       const de = mao.clone().sub(this.g.position), ate = new THREE.Vector3(0, 0.05, 0);
-      const pts = [];
-      const bloco = Math.floor(t / 28);
-      for (let i = 0; i <= 14; i++) {
-        const k = i / 14, q = de.clone().lerp(ate, k);
-        const amp = Math.sin(k * Math.PI) * 0.16;
-        q.x += (rnd(this.seed + bloco, i) - 0.5) * amp; q.y += (rnd(this.seed + bloco, i + 50) - 0.5) * amp + Math.sin(k * Math.PI) * 0.35; q.z += (rnd(this.seed + bloco, i + 90) - 0.5) * amp;
-        pts.push(q);
-      }
-      const k0 = 1 - Math.min(1, Math.abs(t - tcc) / 130);
-      this.raio = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.012 + 0.02 * k0, 6), new THREE.MeshBasicMaterial({ color: 0xfff0d8, transparent: true, opacity: 0.6 + 0.4 * k0, blending: THREE.AdditiveBlending, depthWrite: false }));
-      this.g.add(this.raio);
-    }
+      this.projetil.atualizar(de, ate, (t - (tcc - 120)) / 120, t, 1 - Math.min(1, Math.abs(t - tcc) / 130));
+    } else this.projetil.g.visible = false;
+    this.camadas.atualizar((t - tcc) / 1000, t);
+    // membrana elástica: o disco treme no contato
+    const el = this.materia.elast, sc = t - tcc;
+    if (el > 0.1 && sc >= 0) this.disco.scale.setScalar(R * (1 + 0.14 * el * Math.exp(-sc / 200) * Math.sin(sc / 22)));
     u.uTempo.value = t;
     const prep = Math.max(1, a.t_contato - a.t);
     u.uProg.value = clamp01((t - a.t) / prep);
@@ -212,7 +213,7 @@ export class EfeitoArea {
     if (fase === 'cancelada') { const k = clamp01((t - (tcancel ?? t)) / 400); u.uCinza.value = 1; u.uAlpha.value = 1 - k; this.disco.scale.setScalar(R * (1 - 0.4 * k)); }
     this.vol.visible = volumes || fase === 'contato';
     this.vol.material.uniforms.uTempo.value = t;
-    this.vol.material.uniforms.uA.value = fase === 'preparo' ? 0.05 + 0.06 * u.uProg.value : Math.max(0.03, 0.22 * Math.exp(-Math.max(0, dtc) / 160));
+    this.vol.material.uniforms.uA.value = fase === 'preparo' ? 0.05 + 0.06 * u.uProg.value : Math.max(0.02, 0.13 * Math.exp(-Math.max(0, dtc) / 140));
     this.vol.material.uniforms.uCor.value.set(fase === 'preparo' ? 0xffc070 : 0xff5a2a);
     const contatou = fase !== 'preparo' && fase !== 'cancelada' && dtc >= 0;
     this.onda.visible = this.coluna.visible = this.decal.visible = this.faiscas.visible = this.detritos.visible = this.poeira.visible = this.rach.visible = contatou;
@@ -221,7 +222,7 @@ export class EfeitoArea {
     const s = dtc / 1000;
     const ou = this.onda.material.uniforms;
     ou.uRaio.value = R + 1.8 * (1 - Math.exp(-s * 7)); ou.uLarg.value = 0.05 + 0.09 * s; ou.uA.value = Math.exp(-s * 3.6) * 0.9;
-    this.coluna.material.uniforms.uA.value = Math.exp(-s * 12) * 0.45; this.coluna.material.uniforms.uTempo.value = t;
+    this.coluna.material.uniforms.uA.value = Math.exp(-s * 14) * 0.3; this.coluna.material.uniforms.uTempo.value = t;
     const ru = this.rach.material.uniforms;
     ru.uCresce.value = this.agua ? 0 : 1 - Math.exp(-s * 22);
     ru.uCalor.value = Math.exp(-s * 1.4);
@@ -312,8 +313,9 @@ function matSetor() {
 }
 
 export class EfeitoGuarda {
-  constructor(g, { qualidade }) {
+  constructor(g, { qualidade, materia }) {
     this.gd = g;
+    this.materia = materia ? normalizar(materia) : null;
     this.seed = g.id * 3.7 + 2;
     const ab = THREE.MathUtils.degToRad(g.abertura || 90);
     this.ab = ab;
@@ -323,6 +325,7 @@ export class EfeitoGuarda {
     const seg = Math.max(8, Math.round(48 * ab / (Math.PI * 2)));
     this.parede = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.78, 2.0, seg, 8, true, Math.PI / 2 - ab / 2, ab), matBarreira());
     this.parede.position.y = 1.0;
+    if (this.materia) this.parede.material.uniforms.uCor.value.set(this.materia.cor);
     this.n = qualidade === 'alto' ? 60 : 18;
     this.cacos = new THREE.InstancedMesh(new THREE.TetrahedronGeometry(0.05, 0), new THREE.MeshBasicMaterial({ color: 0xbff8ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }), this.n);
     this.cacos.frustumCulled = false; this.cacos.visible = false;
@@ -390,8 +393,10 @@ function fita(pontos, alt, larg) {
   return g;
 }
 export class EfeitoRastro {
-  constructor(mv, pontos, { cor = 0x8fe8ff, qualidade = 'alto', agua = false } = {}) {
+  constructor(mv, pontos, { cor = 0x8fe8ff, qualidade = 'alto', agua = false, materia = null } = {}) {
     this.mv = mv;
+    this.materia = materia ? normalizar(materia) : null;
+    if (this.materia) cor = this.materia.cor;
     this.seed = (mv.t0 % 997) + 3;
     this.g = new THREE.Group();
     this.mat = new THREE.ShaderMaterial({
@@ -402,18 +407,20 @@ export class EfeitoRastro {
         float meio = 1.0 - abs(vUv.y - 0.5) * 2.0; gl_FragColor = vec4(uCor * (0.6 + meio), atras * meio * meio * 0.8 * uA); }`,
     });
     for (const [alt, larg] of [[0.95, 0.24], [0.55, 0.16], [1.35, 0.12]]) { const f = new THREE.Mesh(fita(pontos, alt, larg), this.mat); f.frustumCulled = false; this.g.add(f); }
-    this.chao = new THREE.Mesh(fita(pontos, 0.016, 0.16), new THREE.ShaderMaterial({
+    const mt = this.materia || normalizar(null);
+    this.chao = new THREE.Mesh(fita(pontos, 0.016, 0.16 + 0.06 * mt.visc), new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2,
-      uniforms: { uCab: { value: 0 }, uA: { value: 1 }, uAgua: { value: agua ? 1 : 0 } },
+      uniforms: { uCab: { value: 0 }, uA: { value: 1 }, uAgua: { value: agua ? 1 : 0 }, uCorM: { value: new THREE.Color(mt.cor) }, uPeso: { value: Math.min(1, mt.tox + mt.visc * 0.5 + Math.max(0, -mt.temp)) } },
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-      fragmentShader: `${NOISE} uniform float uCab, uA, uAgua; varying vec2 vUv; void main(){ if (vUv.x > uCab) discard; float n = fbm(vec2(vUv.x * 30.0, vUv.y * 3.0));
-        float m = (1.0 - abs(vUv.y - 0.5) * 2.0) * (0.5 + 0.5 * n); vec3 c = mix(vec3(0.03, 0.025, 0.02), vec3(0.8, 0.95, 1.0), uAgua); gl_FragColor = vec4(c, m * 0.6 * uA * (1.0 - uAgua * 0.7)); }`,
+      fragmentShader: `${NOISE} uniform float uCab, uA, uAgua, uPeso; uniform vec3 uCorM; varying vec2 vUv; void main(){ if (vUv.x > uCab) discard; float n = fbm(vec2(vUv.x * 30.0, vUv.y * 3.0));
+        float m = (1.0 - abs(vUv.y - 0.5) * 2.0) * (0.5 + 0.5 * n); vec3 c = mix(vec3(0.03, 0.025, 0.02), vec3(0.8, 0.95, 1.0), uAgua); c = mix(c, uCorM * (0.5 + 0.6 * n), uPeso);
+        gl_FragColor = vec4(c, m * (0.6 + 0.3 * uPeso) * uA * (1.0 - uAgua * 0.7)); }`,
     }));
     this.chao.frustumCulled = false;
     this.g.add(this.chao);
     this.n = qualidade === 'alto' ? 34 : 12;
     this.poeira = nuvem(this.n * 2, agua ? 0xd8f0ff : 0x9a9488, agua);
-    this.faiscas = nuvem(this.n, 0xffd9a0, true);
+    this.faiscas = nuvem(this.n, mt.temp > 0.3 ? 0xffb040 : new THREE.Color(mt.cor).lerp(new THREE.Color('#ffffff'), 0.5).getHex(), true);
     this.g.add(this.poeira, this.faiscas);
     this.ini = pontos[0].clone(); this.fim = pontos[pontos.length - 1].clone();
     const d = this.fim.clone().sub(this.ini); d.y = 0; this.dir = d.lengthSq() > 1e-6 ? d.normalize() : new THREE.Vector3(1, 0, 0);

@@ -513,7 +513,7 @@ void Server::process(Conn& c, const Json& m) {
             if (m.has("revisao")) for (auto& x : cr->revs) if (x.rev == m.get("revisao").as_int()) rr = &x;
             digest = rr->digest;
         }
-        if (!digest.empty() && !mt.plan_of(digest)) {
+        if (!digest.empty()) {
             // o cliente web guarda o acervo no servidor: publica a partir dele pelo mesmo caminho de validação
             Json pub = mt.publish(pl.lib->bundle(digest));
             if (!pub.get("ok").as_bool()) { pub.set("t", "equipar.r"); reply("equipar.r", pub); return; }
@@ -585,8 +585,10 @@ void Server::broadcast_room(Room& r, const std::vector<Json>& evs) {
         const Seat* s = r.match->seat(c.assento);
         int my_ent = s ? s->ent : -1;
         Json list = Json::arr();
-        for (auto& e : evs) {
-            std::string tp = e.get("tipo").as_str();
+        for (auto& e0 : evs) {
+            std::string tp = e0.get("tipo").as_str();
+            Json e = e0;
+            if (tp == "exec.inicio") e.set("aparencia", r.match->aparencia_of(e.get("digest").as_str()));
             // janelas e comandos são privados do autor: o oponente lê o corpo e as áreas, não o plano de comandos
             if (tp.rfind("cmd.", 0) == 0 || tp.rfind("janela.", 0) == 0) {
                 int owner = tp == "cmd.ignorado" ? static_cast<int>(e.get("ent").as_int()) : r.exec_owner[static_cast<uint32_t>(e.get("exec").as_int())];

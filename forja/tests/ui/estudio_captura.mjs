@@ -20,10 +20,10 @@ await p.goto('http://127.0.0.1:8795/estudio.html?q=' + (process.env.Q || 'alto')
 await p.waitForFunction(() => window.estudio, null, { timeout: 30000 });
 await p.evaluate(() => { document.getElementById('painel').style.display = 'none'; });
 const lista = JSON.parse(process.argv[2] || '[[0,2000],[4,500],[4,820],[5,560],[6,1500],[8,1320],[9,1400],[10,1200]]');
-for (const [i, t, cy] of lista) {
-  const png = await p.evaluate(([i2, t2, c2]) => window.estudio.irPara(i2, t2, c2 === null ? undefined : c2), [i, t, cy ?? null]);
+for (const [i, t, cy, mat, sem] of lista) {
+  const png = await p.evaluate(([i2, t2, c2, m2, s2]) => window.estudio.irPara(i2, t2, c2 === null ? undefined : c2, m2 || undefined, s2), [i, t, cy ?? null, mat ?? null, sem ?? null]);
   const nome = await p.evaluate((i2) => window.estudio.clipes[i2], i);
-  const arq = `${String(i).padStart(2, '0')}_${nome.normalize('NFD').replace(/[^\w]+/g, '_').replace(/_+$/, '').toLowerCase()}_${String(Math.round(t)).padStart(4, '0')}ms${cy !== undefined ? '_cam' + cy : ''}.png`;
+  const arq = `${String(i).padStart(2, '0')}_${nome.normalize('NFD').replace(/[^\w]+/g, '_').replace(/_+$/, '').toLowerCase()}_${String(Math.round(t)).padStart(4, '0')}ms${cy !== undefined && cy !== null ? '_cam' + cy : ''}${sem !== undefined && sem !== null ? '_s' + sem : ''}${mat ? '_' + mat.normalize('NFD').replace(/[^\w*]+/g, '').replace('*', 'aleatoria').toLowerCase() : ''}.png`;
   writeFileSync(path.join(EV, arq), Buffer.from(png.split(',')[1], 'base64'));
   console.log(arq);
 }

@@ -3,6 +3,8 @@
 // então a cena e a animação são exatamente as do jogo. irPara(clipe, t) é determinístico (simula a 60 Hz).
 import * as THREE from 'three';
 import { Cena } from './cena.js';
+import { PRESETS, aleatoria, normalizar } from './materia.js';
+import { genomaDe } from './humano.js';
 
 const R = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 const ease = (x) => x * x * (3 - 2 * x);
@@ -10,7 +12,11 @@ const ease = (x) => x * x * (3 - 2 * x);
 // ---------- clipes ----------
 function clipe(nome, dur, ents, camera, estado) { return { nome, dur, ents, camera, estado }; }
 const A = { id: 1, tipo: 'jogador', time: 0, nome: 'Ana' }, B = { id: 2, tipo: 'jogador', time: 1, nome: 'Bruno' };
+const GALERIA = [101, 202, 303, 404, 505, 606].map((sem, i) => ({ id: 30 + i, tipo: 'jogador', time: i % 2, nome: 'v' + sem, forma: genomaDe(sem) }));
 const CL = [
+  clipe('Variações (genomas)', 6000, GALERIA, { yaw: 0.0, pitch: 0.12, dist: 5.2, alvo: [-6, 1.0, 0.0] }, () => ({
+    pos: Object.fromEntries(GALERIA.map((e, i) => [e.id, [-560, -260 + i * 104]])), yaw: Object.fromEntries(GALERIA.map((e) => [e.id, 0])),
+  })),
   clipe('Parado', 6000, [A], { yaw: 0.55, pitch: 0.1, dist: 2.5, alvo: [-6, 1.05, -2.5] }, () => ({ pos: { 1: [-600, -250] }, yaw: { 1: 0 } })),
   clipe('Andar', 8000, [A], { yaw: 0.9, pitch: 0.15, dist: 4.4, alvo: [-6, 0.9, -2.2] }, (t) => { const a = (t / 8000) * Math.PI * 2; return { pos: { 1: [-600 + 200 * Math.cos(a), -220 + 160 * Math.sin(a)] }, yaw: { 1: (a * 180) / Math.PI + 90 } }; }),
   clipe('Correr', 4000, [A], { yaw: 1.35, pitch: 0.12, dist: 5.2, alvo: [-6, 0.9, -2.6] }, (t) => { const k = (t % 4000) / 2000, ida = k < 1; const x = ida ? -900 + 600 * ease(k) : -300 - 600 * ease(k - 1); return { pos: { 1: [x, -260] }, yaw: { 1: ida ? 0 : 180 } }; }),
@@ -69,14 +75,14 @@ class MundoRoteiro {
       if (t < a.t) continue;
       const fase = t < a.t_contato ? 'preparo' : t < a.t_fim ? 'contato' : 'fim';
       if (t > a.t_fim + 4500) continue;
-      this.areas.set(a.id, { ...a, fase, resultados: fase === 'preparo' ? [] : a.resultados, t_contato_real: a.t_contato, t_fim_real: a.t_fim });
+      this.areas.set(a.id, { ...a, fase, resultados: fase === 'preparo' ? [] : a.resultados, t_contato_real: a.t_contato, t_fim_real: a.t_fim, materia: a.materia || this.materia });
     }
     for (const g of s.guardas || []) {
       if (t < g.t || (g.fim && t > g.fim.t + 1000)) continue;
       const abs = g.absorcoes.filter((x) => x.t <= t);
-      this.guardas.set(g.id, { ...g, absorcoes: abs, ultima_absorcao: abs[abs.length - 1], fim: g.fim && t >= g.fim.t ? g.fim : null });
+      this.guardas.set(g.id, { ...g, absorcoes: abs, ultima_absorcao: abs[abs.length - 1], fim: g.fim && t >= g.fim.t ? g.fim : null, materia: g.materia || this.materia });
     }
-    for (const m of s.movs || []) this.movs.set(m.ent, m);
+    for (const m of s.movs || []) this.movs.set(m.ent, { ...m, materia: m.materia || this.materia });
     this.impactos = (s.impactos || []).filter((x) => x.t <= t);
     this.marcas = (s.marcas || []).filter((x) => x.t <= t);
   }
@@ -104,6 +110,10 @@ class Estudio {
     const lista = document.getElementById('clipes');
     lista.innerHTML = CL.map((c, i) => `<button data-i="${i}" data-testid="clipe-${i}">${c.nome}</button>`).join('');
     for (const b of lista.querySelectorAll('button')) b.onclick = () => this.selecionar(+b.dataset.i);
+    const mats = document.getElementById('materias');
+    mats.innerHTML = Object.keys(PRESETS).map((k) => `<button data-m="${k}">${k}</button>`).join('') + '<button data-m="*">Aleatória</button>';
+    for (const b of mats.querySelectorAll('button')) b.onclick = () => this.definirMateria(b.dataset.m === '*' ? aleatoria(Math.floor(Math.random() * 1e6)) : PRESETS[b.dataset.m], b.dataset.m);
+    document.getElementById('pers').onclick = () => { A.forma = genomaDe(Math.floor(Math.random() * 1e6)); B.forma = genomaDe(Math.floor(Math.random() * 1e6)); this.reiniciarEnt(); this.mundo.carregar(CL[this.idx]); };
     document.getElementById('lento').onclick = (e) => { this.vel = this.vel === 1 ? 0.25 : 1; e.target.textContent = this.vel === 1 ? 'Câmera lenta' : 'Velocidade normal'; };
     document.getElementById('pausar').onclick = (e) => { this.pausa = !this.pausa; e.target.textContent = this.pausa ? 'Continuar' : 'Pausar'; };
     document.getElementById('qual').onclick = (e) => { const q = this.cena.qualidade === 'alto' ? 'baixo' : 'alto'; this.cena.setQualidade(q); e.target.textContent = 'Gráficos: ' + q; this.reiniciarEnt(); };
@@ -114,6 +124,12 @@ class Estudio {
     cv.onpointerup = () => { arr = null; };
     cv.onwheel = (e) => { this.cena.orbita.dist = Math.max(1.2, Math.min(15, this.cena.orbita.dist * (1 + Math.sign(e.deltaY) * 0.08))); e.preventDefault(); };
   }
+  definirMateria(m, nome) {
+    this.mundo.materia = normalizar(m);
+    this.materiaNome = nome || 'personalizada';
+    this.cena.limparDinamicos();
+    for (const b of document.querySelectorAll('#materias button')) b.classList.toggle('sel', b.dataset.m === nome);
+  }
   reiniciarEnt() { for (const [, o] of this.cena.objetos.ent) { this.cena.scene.remove(o); for (const x of o.userData.extras || []) this.cena.scene.remove(x); } this.cena.objetos.ent.clear(); this.cena.limparDinamicos(); }
   selecionar(i) {
     this.idx = i; this.t = 0;
@@ -122,7 +138,7 @@ class Estudio {
     this.reiniciarEnt();
     Object.assign(this.cena.orbita, { yaw: c.camera.yaw, pitch: c.camera.pitch, dist: c.camera.dist });
     this.cena.orbita.alvo.set(...c.camera.alvo);
-    document.getElementById('titulo').textContent = c.nome;
+    document.getElementById('titulo').textContent = c.nome + (this.materiaNome ? ' · ' + this.materiaNome : '');
     for (const b of document.querySelectorAll('#clipes button')) b.classList.toggle('sel', +b.dataset.i === i);
   }
   passo(dtMs) {
@@ -134,7 +150,9 @@ class Estudio {
     this.cena.sincronizar(this.mundo, this.t);
   }
   // determinístico: reinicia o clipe e simula até t a 60 Hz, depois renderiza um quadro
-  irPara(i, t, camYaw) {
+  irPara(i, t, camYaw, materia, semente) {
+    if (semente !== undefined && semente !== null) { A.forma = genomaDe(semente); B.forma = genomaDe(semente + 1); }
+    if (materia) this.definirMateria(materia === '*' ? aleatoria(t + i * 7) : PRESETS[materia] || materia, typeof materia === 'string' ? materia : 'personalizada');
     this.selecionar(i);
     if (camYaw !== undefined) this.cena.orbita.yaw = camYaw;
     this.pausa = true;

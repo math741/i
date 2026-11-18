@@ -56,6 +56,7 @@ public:
     // Publicação de receita no cache da sala (por digest). Recalcula digests, valida e compila.
     Json publish(const Json& pacote);
     std::shared_ptr<const Plan> plan_of(const std::string& digest) const;
+    Json aparencia_of(const std::string& digest) const { auto it = aparencias_.find(digest); return it == aparencias_.end() ? Json::obj() : it->second; }
     Json equip(int seat, int slot, const std::string& digest, int64_t t);
 
     Json start_training(int64_t t);
@@ -90,6 +91,7 @@ private:
     ObjectStore store_;
     std::map<std::string, std::shared_ptr<const Plan>> cache_;
     std::map<std::string, Json> analises_;
+    std::map<std::string, Json> aparencias_;
     std::string fase_ = "saguao";
     int64_t fase_ate_ = 0;
     std::map<int, int> placar_;

@@ -25,6 +25,7 @@ export class Mundo {
     this.janelas = new Map();
     this.marcas = [];
     this.impactos = [];
+    this.aparencias = new Map();
     this.registro = [];
     this.meuEnt = -1;
     this.fase = 'saguao';
@@ -72,8 +73,9 @@ export class Mundo {
         if (!this.ent.has(e.ent)) this.ent.set(e.ent, { id: e.ent, amostras: [{ s: e.t, x: e.pos[0], y: e.pos[1], yaw: e.yaw }], ativo: true });
         Object.assign(this.ent.get(e.ent), { nome: e.nome, tipo: e.classe, time: e.time });
         break;
+      case 'exec.inicio': if (e.aparencia) this.aparencias.set(e.exec, e.aparencia); break;
       case 'mov.inicio':
-        this.movs.set(e.ent, { de: e.de, ctrl: e.ctrl, para: e.para, t0: e.t0, t1: e.t1, exec: e.exec, rotulo: e.rotulo });
+        this.movs.set(e.ent, { de: e.de, ctrl: e.ctrl, para: e.para, t0: e.t0, t1: e.t1, exec: e.exec, rotulo: e.rotulo, materia: (this.aparencias.get(e.exec) || {}).materia });
         if (e.ent === this.meuEnt && this.previsto) {
           const p = this.previsto;
           const err = Math.hypot(p.para[0] - e.para[0], p.para[1] - e.para[1]);
@@ -85,7 +87,7 @@ export class Mundo {
         this.movs.delete(e.ent);
         if (e.ent === this.meuEnt && this.local) { this.local.x = e.pos[0]; this.local.y = e.pos[1]; }
         break;
-      case 'area.anuncio': this.areas.set(e.id, { ...e, resultados: [], fase: 'preparo' }); break;
+      case 'area.anuncio': this.areas.set(e.id, { ...e, resultados: [], fase: 'preparo', materia: (this.aparencias.get(e.exec) || {}).materia }); break;
       case 'area.contato': {
         const a = this.areas.get(e.id);
         if (a) { a.fase = 'contato'; a.centro = e.centro; a.resultados.push(...e.resultados); a.t_contato_real = e.t; }
@@ -93,7 +95,7 @@ export class Mundo {
       }
       case 'area.fim': { const a = this.areas.get(e.id); if (a) { a.fase = 'fim'; a.t_fim_real = e.t; setTimeout(() => this.areas.delete(e.id), 900); } break; }
       case 'area.cancelada': { const a = this.areas.get(e.id); if (a) { a.fase = 'cancelada'; a.t_fim_real = e.t; setTimeout(() => this.areas.delete(e.id), 700); } break; }
-      case 'guarda.inicio': this.guardas.set(e.id, { ...e, absorcoes: [] }); break;
+      case 'guarda.inicio': this.guardas.set(e.id, { ...e, absorcoes: [], materia: (this.aparencias.get(e.exec) || {}).materia }); break;
       case 'guarda.absorve': { const g = this.guardas.get(e.id); if (g) { g.ultima_absorcao = e; g.cargas = e.cargas; g.absorcoes.push(e); } this.impactos.push({ ...e, absorvido: true, visto: tServ }); break; }
       case 'guarda.fim': { const g = this.guardas.get(e.id); if (g) { g.fim = e; setTimeout(() => this.guardas.delete(e.id), 1000); } break; }
       case 'janela.abre': this.janelas.set(e.id, { ...e }); break;

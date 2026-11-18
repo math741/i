@@ -93,6 +93,9 @@ h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: v
 .comp { color: #ffa07a; font-size: 12px; margin: 3px 0; }
 .diff { font: 11.5px ui-monospace, monospace; background: #0f1216; padding: 6px; border-radius: 6px; white-space: pre-wrap; }
 textarea.json { width: 100%; height: 120px; font: 11px ui-monospace, monospace; }
+.mat button { font-size: 11px; padding: 3px 6px; margin: 1px; }
+.mat label { display: grid; grid-template-columns: 78px 1fr 34px; align-items: center; gap: 4px; font-size: 11px; }
+.mat input[type=range] { width: 100%; }
 .linha { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0; }
 </style>
 </head>
@@ -178,8 +181,9 @@ textarea.json { width: 100%; height: 120px; font: 11px ui-monospace, monospace; 
     <div class="linha"><button id="ofDuplicar">Duplicar</button><button id="ofInverter" title="inverte a sequência principal" data-testid="inverter">Inverter etapas</button></div>
     <div class="linha"><button id="ofExportar">Exportar</button><button id="ofImportar">Importar</button></div>
     <textarea id="ofPacote" class="json oculto" placeholder="cole aqui um pacote forja.pacote/1"></textarea>
-    <h2>Aparência (fora do digest)</h2>
-    <div class="linha">cor <input type="color" id="ofCor" value="#ffb347"> material <select id="ofMaterial"><option>agua</option><option>brasa</option><option>vidro</option><option>areia</option></select></div>
+    <h2>Matéria do poder (fora do digest)</h2>
+    <div id="ofMateria"></div>
+    <input type="hidden" id="ofCor"><select id="ofMaterial" class="oculto"><option>agua</option></select>
   </div>
   <div id="ofCentro">
     <canvas id="ofCanvas"></canvas>

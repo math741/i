@@ -140,7 +140,10 @@ Json Library::bundle(const std::string& digest) const {
         if (c && r) {
             Json x = Json::obj();
             x.set("criacao", c->id); x.set("nome", r->nome); x.set("revisao", r->rev); x.set("autor", c->autor);
-            x.set("rotulos", r->rotulos); x.set("deps", r->deps); x.set("aparencia", r->aparencia);
+            x.set("rotulos", r->rotulos); x.set("deps", r->deps);
+            // aparência é cosmética e atual (não fica presa à revisão): o pacote leva a da criação
+            const Json& ap = c->rascunho.get("aparencia");
+            x.set("aparencia", ap.is_obj() && ap.size() ? ap : r->aparencia);
             nomes.set(d, x);
         }
     }
@@ -416,7 +419,7 @@ Json Workshop::apply_edit(Creation& c, const Json& e, bool) {
         if (cmd == "aparencia") {
             Json& ap = d["aparencia"];
             if (!ap.is_obj()) ap = Json::obj();
-            for (const char* k : {"cor", "material", "ritmo"}) if (e.has(k)) ap.set(k, e.get(k));
+            for (const char* k : {"cor", "material", "ritmo", "materia"}) if (e.has(k)) ap.set(k, e.get(k));
             return true;
         }
         er = "comando de edição desconhecido '" + cmd + "'";

@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { Cena, g2t } from './cena.js';
 import { bezier } from './modelo.js';
+import { EIXOS, PRESETS, aleatoria, normalizar } from './materia.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -36,14 +37,14 @@ class MundoSim {
     for (const e of this.sim.eventos) {
       if (e.t > T) break;
       switch (e.tipo) {
-        case 'area.anuncio': this.areas.set(e.id, { ...e, resultados: [], fase: 'preparo' }); break;
+        case 'area.anuncio': this.areas.set(e.id, { ...e, resultados: [], fase: 'preparo', materia: this.materia }); break;
         case 'area.contato': { const a = this.areas.get(e.id); if (a) { a.fase = 'contato'; a.centro = e.centro; a.resultados.push(...e.resultados); } break; }
         case 'area.fim': { const a = this.areas.get(e.id); if (a) { if (T - e.t < 250) a.fase = 'fim'; else this.areas.delete(e.id); } break; }
         case 'area.cancelada': this.areas.delete(e.id); break;
-        case 'guarda.inicio': this.guardas.set(e.id, { ...e, absorcoes: [] }); break;
+        case 'guarda.inicio': this.guardas.set(e.id, { ...e, absorcoes: [], materia: this.materia }); break;
         case 'guarda.absorve': { const g = this.guardas.get(e.id); if (g) { g.ultima_absorcao = e; g.absorcoes.push(e); } break; }
         case 'guarda.fim': { const g = this.guardas.get(e.id); if (g) { if (T - e.t < 1000) g.fim = e; else this.guardas.delete(e.id); } break; }
-        case 'mov.inicio': this.movs.set(e.ent, { ...e }); break;
+        case 'mov.inicio': this.movs.set(e.ent, { ...e, materia: this.materia }); break;
         case 'mov.fim': this.movs.delete(e.ent); break;
         case 'impacto': if (T - e.t < 900) this.impactos.push({ ...e }); break;
         case 'marca': (this.marcas ||= []).push(e); break;
@@ -278,9 +279,23 @@ export class Oficina {
     $('ofDeps').innerHTML = (a.dependencias || []).map((d) => `<div class="linha">${esc(rot[d.no] || d.no)}: <b>${esc(d.nome || '?')} r${d.revisao || '?'}</b>${d.desatualizada ? ` <span class="aviso">r${d.ultima_revisao} disponível</span> <button data-up="${d.no}" data-testid="atualizar-${d.no}">ver diferença e atualizar</button>` : ''}${this.ultimaAtualizacao === d.no ? ` <button data-rev="${d.no}" class="perigo" data-testid="desfazer-atualizacao">desfazer atualização</button>` : ''}</div>`).join('');
     for (const b of $('ofDeps').querySelectorAll('[data-up]')) b.onclick = async () => { const r = await this.cmd({ cmd: 'dependencias.atualizar', no: b.dataset.up }); if (r && r.ok) { this.ultimaAtualizacao = b.dataset.up; this.render(); this.mostrarDiff('atualização aplicada ao rascunho — salve para manter ou desfaça', r.diferenca); } };
     for (const b of $('ofDeps').querySelectorAll('[data-rev]')) b.onclick = async () => { await this.cmd({ cmd: 'dependencias.reverter', no: b.dataset.rev }); this.ultimaAtualizacao = null; this.render(); $('ofDiff').classList.add('oculto'); };
-    const ap = a.rascunho.aparencia || {};
-    if (ap.cor) $('ofCor').value = ap.cor;
-    if (ap.material) $('ofMaterial').value = ap.material;
+    this.renderMateria();
+  }
+
+  renderMateria() {
+    const a = this.atual;
+    const m = normalizar((a.rascunho.aparencia || {}).materia);
+    this.mundoSim.materia = m;
+    if (this._matChave === a.criacao + JSON.stringify(m)) return;
+    this._matChave = a.criacao + JSON.stringify(m);
+    $('ofMateria').className = 'mat';
+    $('ofMateria').innerHTML = `<div>${Object.keys(PRESETS).map((k) => `<button data-preset="${k}" data-testid="materia-${k}">${k}</button>`).join('')}<button data-preset="*" data-testid="materia-aleatoria">Aleatória</button></div>
+      ${EIXOS.map(([k, rot, mn, mx]) => `<label>${rot}<input type="range" min="${mn}" max="${mx}" step="0.01" value="${m[k]}" data-eixo="${k}"><span>${(+m[k]).toFixed(2)}</span></label>`).join('')}
+      <div class="linha">cores <input type="color" data-cor="cor" value="${m.cor}"><input type="color" data-cor="cor2" value="${m.cor2}"></div>`;
+    const enviar = (nova) => { clearTimeout(this._matT); this._matT = setTimeout(async () => { await this.cmd({ cmd: 'aparencia', materia: nova, cor: nova.cor }, { simular: false }); this.cena.limparDinamicos(); }, 120); };
+    for (const b of $('ofMateria').querySelectorAll('[data-preset]')) b.onclick = () => { const nova = b.dataset.preset === '*' ? aleatoria(Math.floor(Math.random() * 1e6)) : normalizar(PRESETS[b.dataset.preset]); this._matChave = null; enviar(nova); };
+    for (const r of $('ofMateria').querySelectorAll('[data-eixo]')) r.oninput = () => { const nova = { ...m, [r.dataset.eixo]: +r.value }; r.nextElementSibling.textContent = (+r.value).toFixed(2); Object.assign(m, nova); enviar({ ...m }); };
+    for (const c of $('ofMateria').querySelectorAll('[data-cor]')) c.onchange = () => { m[c.dataset.cor] = c.value; enviar({ ...m }); };
   }
 
   mostrarDiff(titulo, d) {
@@ -456,7 +471,7 @@ export class Oficina {
       if (this.sim) {
         this.mundoSim.em(this.t);
         const ap = (this.atual && this.atual.rascunho.aparencia) || {};
-        if (ap.cor) this.cena.aparencias.set(undefined, { cor: new THREE.Color(ap.cor).getHex() });
+        this.cena.aparencias.set(undefined, { cor: ap.cor ? new THREE.Color(ap.cor).getHex() : undefined, materia: ap.materia });
         this.cena.sincronizar(this.mundoSim, this.sim.t0 + this.t);
       }
       if (!this.arrasto) this.desenharGizmosSeMudou();
@@ -513,8 +528,6 @@ export class Oficina {
       const raiz = r.criacoes.find((c) => c.raiz);
       if (raiz) this.selecionar(raiz.criacao);
     };
-    $('ofCor').onchange = () => this.cmd({ cmd: 'aparencia', cor: $('ofCor').value }, { simular: false });
-    $('ofMaterial').onchange = () => this.cmd({ cmd: 'aparencia', material: $('ofMaterial').value }, { simular: false });
     for (const id of ['cenX', 'cenY', 'cenYaw']) $(id).onchange = () => { this.cenario.autor = { pos: [+$('cenX').value, +$('cenY').value, 0], yaw: +$('cenYaw').value }; this.simular(); };
     $('cenAlvo').onclick = () => { this.modoAlvo = true; this.toast('clique no chão da prévia'); };
     $('cenLimpar').onclick = () => { this.cenario.alvos = []; this.simular(); };

@@ -206,6 +206,7 @@ Json Match::publish(const Json& b) {
     nm.rotulos_sub = [nomes](const std::string& d) { return nomes.get(d).get("rotulos"); };
     CompileOut co = compile_recipe(*rootj, [this](const std::string& d) { return store_.get(d); }, cfg_.regras, &nm);
     analises_[root] = co.analise;
+    for (auto& kv : b.get("nomes").members()) if (kv.second.get("aparencia").is_obj()) aparencias_[kv.first] = kv.second.get("aparencia");
     r.set("ok", co.ok);
     r.set("digest", root);
     r.set("competitiva_ok", co.competitiva_ok);
