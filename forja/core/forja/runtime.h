@@ -6,6 +6,7 @@
 // ativação de anteparos), 2 contato, 3 fim/decisões. Consequência documentada: um anteparo que
 // fica ativo no mesmo milissegundo de um contato já protege (empate favorece a defesa).
 #pragma once
+#include <climits>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -99,10 +100,14 @@ public:
     void set_move(int ent, Vec3 dir, double yaw, int64_t t);
     void teleport(int ent, Vec3 pos, double yaw, int64_t t);
 
-    struct Act { bool ok = false; uint32_t exec = 0; std::string motivo; bool foi_comando = false; };
-    Act activate(int ent, int slot, std::shared_ptr<const Plan> plan, int64_t t, double aim_yaw, Vec3 aim_point);
-    // Comando durante uma execução (2º toque, soltar, secundário). t_julgado pode ser < agora (compensação).
-    void command(int ent, int slot, bool soltar, bool secundario, int64_t t_julgado, int64_t t_agora);
+    static constexpr int64_t kSemRelogio = INT64_MIN;
+    struct Act { bool ok = false; uint32_t exec = 0; std::string motivo; bool foi_comando = false; int64_t t_julgado = 0; };
+    // t_cliente: instante da entrada na linha do tempo do próprio jogador (qualquer relógio monotônico).
+    Act activate(int ent, int slot, std::shared_ptr<const Plan> plan, int64_t t, double aim_yaw, Vec3 aim_point, int64_t t_cliente = kSemRelogio);
+    // Comando durante uma execução (2º toque, soltar, secundário). O instante julgado é relativo à ativação na
+    // linha do tempo do jogador: t0 + (t_cliente - t_cliente_ativacao), limitado a [agora - tolerância, agora].
+    // Latência constante não muda o julgamento; variação de latência é absorvida até a tolerância.
+    int64_t command(int ent, int slot, bool soltar, bool secundario, int64_t t_cliente, int64_t t_agora);
     bool cancel(uint32_t exec, const std::string& motivo, int64_t t, bool manter_comprometidas);
     void cancel_owner(int ent, const std::string& motivo, int64_t t, bool manter_comprometidas);
     void cancel_all(const std::string& motivo, int64_t t);
@@ -133,6 +138,7 @@ private:
         int slot = 0;
         std::shared_ptr<const Plan> plan;
         int64_t t0 = 0, deadline = 0;
+        int64_t t_cli0 = kSemRelogio;
         Vec3 origin;
         double yaw0 = 0, aim_yaw = 0;
         Vec3 aim_point;

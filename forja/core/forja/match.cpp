@@ -350,7 +350,7 @@ Runtime::Act Match::press(int si, int slot, bool soltar, bool sec, int64_t tj, i
     if (fase_ != "treino" && fase_ != "duelo") { a.motivo = "fora de jogo (fase " + fase_ + ")"; return a; }
     rt_.advance(t);
     if (soltar || sec || rt_.has_alive_exec(s->ent, slot)) {
-        rt_.command(s->ent, slot, soltar, sec, tj, t);
+        a.t_julgado = rt_.command(s->ent, slot, soltar, sec, tj, t);
         a.ok = true;
         a.foi_comando = true;
         a.exec = rt_.alive_exec_of(s->ent, slot);
@@ -358,7 +358,7 @@ Runtime::Act Match::press(int si, int slot, bool soltar, bool sec, int64_t tj, i
     }
     auto it = s->equip.find(slot);
     if (it == s->equip.end()) { a.motivo = "nenhuma criação equipada no espaço " + std::to_string(slot + 1); return a; }
-    return rt_.activate(s->ent, slot, plan_of(it->second), t, aim_yaw, aim);
+    return rt_.activate(s->ent, slot, plan_of(it->second), t, aim_yaw, aim, tj);
 }
 
 void Match::move(int si, Vec3 dir, double yaw, int64_t t) {

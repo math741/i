@@ -63,7 +63,7 @@ public:
     Json request_rematch(int seat, int64_t t);
 
     // Entrada do jogador
-    Runtime::Act press(int seat, int slot, bool soltar, bool secundario, int64_t t_julgado, int64_t t, double aim_yaw, Vec3 aim);
+    Runtime::Act press(int seat, int slot, bool soltar, bool secundario, int64_t t_cliente, int64_t t, double aim_yaw, Vec3 aim);
     void move(int seat, Vec3 dir, double yaw, int64_t t);
     bool cancel(int seat, int64_t t);
 

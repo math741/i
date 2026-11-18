@@ -1,0 +1,1212 @@
+{
+  "inicio": "2026-11-18T16:48:45.636Z",
+  "topologia": "servidor dedicado local + 2 clientes em processos separados (mesma máquina, loopback)",
+  "verificacoes": [
+    {
+      "ok": true,
+      "desc": "servidor e jogadores em processos distintos",
+      "dados": {
+        "servidor_pid": 1348,
+        "ana_pid": 1349,
+        "bruno_pid": 1350,
+        "orquestrador_pid": 1341
+      }
+    },
+    {
+      "ok": true,
+      "desc": "topologia anunciada pelo servidor: servidor dedicado (processo próprio)"
+    },
+    {
+      "ok": true,
+      "desc": "sala privada UXXK: Ana no assento 0, Bruno no 1"
+    },
+    {
+      "ok": true,
+      "desc": "os dois estão no treino"
+    },
+    {
+      "ok": true,
+      "desc": "servidor aceita a ativação de Travessia"
+    },
+    {
+      "ok": true,
+      "desc": "Passo→Pulso: centro (-300, -250) raio 100 → atingido",
+      "dados": {
+        "servidor": {
+          "centro": [
+            -300,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 1663,
+          "resultado": "atingido",
+          "motivo": "distância 90,0 cm ≤ 134,0 cm"
+        },
+        "cliente_ana": {
+          "centro": [
+            -300,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 1663,
+          "resultado": "atingido",
+          "motivo": "distância 90,0 cm ≤ 134,0 cm",
+          "recebido_em": 1665,
+          "atraso_ms": 2
+        },
+        "cliente_bruno": {
+          "centro": [
+            -300,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 1663,
+          "resultado": "atingido",
+          "motivo": "distância 90,0 cm ≤ 134,0 cm",
+          "recebido_em": 1666,
+          "atraso_ms": 3
+        },
+        "previsao_local": {
+          "tipo": "aceita",
+          "erro_destino_cm": 0,
+          "antecipacao_ms": 7
+        }
+      }
+    },
+    {
+      "ok": true,
+      "desc": "os dois clientes recebem o mesmo contato que o servidor decidiu"
+    },
+    {
+      "ok": true,
+      "desc": "previsão local do deslocamento foi aceita pelo servidor",
+      "dados": {
+        "tipo": "aceita",
+        "erro_destino_cm": 0,
+        "antecipacao_ms": 7
+      }
+    },
+    {
+      "ok": true,
+      "desc": "Pulso→Passo: centro (-600, -250) raio 100 → fora",
+      "dados": {
+        "servidor": {
+          "centro": [
+            -600,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 2648,
+          "resultado": "fora",
+          "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm"
+        },
+        "cliente_ana": {
+          "centro": [
+            -600,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 2648,
+          "resultado": "fora",
+          "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm",
+          "recebido_em": 2657,
+          "atraso_ms": 9
+        },
+        "cliente_bruno": {
+          "centro": [
+            -600,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 2648,
+          "resultado": "fora",
+          "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm",
+          "recebido_em": 2657,
+          "atraso_ms": 9
+        }
+      }
+    },
+    {
+      "ok": true,
+      "desc": "linha do tempo: janela 450–750 ms automática, volta marcada como manual"
+    },
+    {
+      "ok": true,
+      "desc": "comando cedo: janela [450,750] → expirou, posição (-300, -250)",
+      "dados": {
+        "caso": "cedo",
+        "comando_ms": 300,
+        "enviado_ms_real": 299,
+        "julgado_rel_ms": 299,
+        "janela": [
+          450,
+          750
+        ],
+        "resultado": "expirou",
+        "pos_final": [
+          -300,
+          -250
+        ],
+        "voltou": false
+      }
+    },
+    {
+      "ok": true,
+      "desc": "comando cedo: a janela é privada (o oponente não a recebe)"
+    },
+    {
+      "ok": true,
+      "desc": "comando dentro: janela [450,750] → comando, posição (-600, -250)",
+      "dados": {
+        "caso": "dentro",
+        "comando_ms": 600,
+        "enviado_ms_real": 599,
+        "julgado_rel_ms": 599,
+        "janela": [
+          450,
+          750
+        ],
+        "resultado": "comando",
+        "pos_final": [
+          -600,
+          -250
+        ],
+        "voltou": true
+      }
+    },
+    {
+      "ok": true,
+      "desc": "comando dentro: a janela é privada (o oponente não a recebe)"
+    },
+    {
+      "ok": true,
+      "desc": "comando tarde: janela [450,750] → expirou, posição (-300, -250)",
+      "dados": {
+        "caso": "tarde",
+        "comando_ms": 800,
+        "enviado_ms_real": 799,
+        "julgado_rel_ms": 799,
+        "janela": [
+          450,
+          750
+        ],
+        "resultado": "expirou",
+        "pos_final": [
+          -300,
+          -250
+        ],
+        "voltou": false
+      }
+    },
+    {
+      "ok": true,
+      "desc": "comando tarde: a janela é privada (o oponente não a recebe)"
+    },
+    {
+      "ok": true,
+      "desc": "comando ausente: janela [450,750] → expirou, posição (-300, -250)",
+      "dados": {
+        "caso": "ausente",
+        "comando_ms": null,
+        "enviado_ms_real": null,
+        "julgado_rel_ms": null,
+        "janela": [
+          450,
+          750
+        ],
+        "resultado": "expirou",
+        "pos_final": [
+          -300,
+          -250
+        ],
+        "voltou": false
+      }
+    },
+    {
+      "ok": true,
+      "desc": "comando ausente: a janela é privada (o oponente não a recebe)"
+    },
+    {
+      "ok": true,
+      "desc": "frente (0°): absorvido — absorvido: impacto a 0.0° do eixo ≤ 45.0° (metade de 90°)",
+      "dados": {
+        "caso": "frente (0°)",
+        "servidor": {
+          "centro": [
+            -80,
+            250,
+            0
+          ],
+          "raio": 100,
+          "t": 10152,
+          "resultado": "absorvido",
+          "motivo": "absorvido: impacto a 0.0° do eixo ≤ 45.0° (metade de 90°)"
+        },
+        "ana_ve_frente": {
+          "eixo_yaw": 180,
+          "abertura": 90,
+          "gesto": "bracos_cruzados",
+          "ativa_em_ms": 150
+        }
+      }
+    },
+    {
+      "ok": true,
+      "desc": "frente (0°): Ana recebe a frente protegida (eixo 180°, abertura 90°, gesto bracos_cruzados)"
+    },
+    {
+      "ok": true,
+      "desc": "flanco (90° do eixo): atingido — distância 80,0 cm ≤ 134,0 cm; anteparo não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)",
+      "dados": {
+        "caso": "flanco (90° do eixo)",
+        "servidor": {
+          "centro": [
+            0,
+            170,
+            0
+          ],
+          "raio": 100,
+          "t": 12616,
+          "resultado": "atingido",
+          "motivo": "distância 80,0 cm ≤ 134,0 cm; anteparo não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)"
+        },
+        "ana_ve_frente": {
+          "eixo_yaw": 180,
+          "abertura": 90,
+          "gesto": "bracos_cruzados",
+          "ativa_em_ms": 150
+        }
+      }
+    },
+    {
+      "ok": true,
+      "desc": "flanco (90° do eixo): Ana recebe a frente protegida (eixo 180°, abertura 90°, gesto bracos_cruzados)"
+    },
+    {
+      "ok": true,
+      "desc": "reconexão retoma os mesmos assentos (token)"
+    },
+    {
+      "ok": true,
+      "desc": "receitas recarregadas com o mesmo id, revisão e digest (6 criações)"
+    },
+    {
+      "ok": true,
+      "desc": "Bruno importa o Pulso de Ana com o mesmo digest"
+    },
+    {
+      "ok": true,
+      "desc": "servidor recusa pacote adulterado: digest não confere para sha256:0392d494550f… (conteúdo adulterado ou versão incompatível)"
+    },
+    {
+      "ok": true,
+      "desc": "duelo inicia: \"ok\""
+    },
+    {
+      "ok": true,
+      "desc": "treino e duelo usam os mesmos identificadores e versões (digests)",
+      "dados": {
+        "ana0": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+        "ana1": "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120",
+        "ana2": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
+        "ana3": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
+        "bruno0": "sha256:128798a61a9ddfd0babd19993ba131ea882d336ef9ac72cfbcdb3987077bbaf3",
+        "bruno2": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a"
+      }
+    },
+    {
+      "ok": true,
+      "desc": "entrada tardia como espectador recebe o efeito ativo (guardas ativas: 1)",
+      "dados": {
+        "resumo": true,
+        "areas": 0,
+        "guardas": 1,
+        "fase": "duelo"
+      }
+    },
+    {
+      "ok": true,
+      "desc": "partida encerrada pelo placar {\"0\":3,\"1\":0} (3 pontos)"
+    },
+    {
+      "ok": true,
+      "desc": "impacto decisivo idêntico no servidor e nos dois clientes",
+      "dados": {
+        "servidor": {
+          "t": 34254,
+          "centro": [
+            608.8,
+            113,
+            0
+          ],
+          "raio": 100,
+          "alvo": "Bruno",
+          "pos_alvo": [
+            600,
+            200,
+            0
+          ],
+          "dist_cm": 87.4,
+          "digest": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+          "placar": {
+            "0": 3,
+            "1": 0
+          }
+        },
+        "cliente_ana": {
+          "recebido_em_servidor_est": 34257,
+          "atraso_ms": 3,
+          "centro": [
+            608.8,
+            113,
+            0
+          ],
+          "pos_alvo_visto": [
+            600,
+            200
+          ],
+          "placar": {
+            "0": 3,
+            "1": 0
+          }
+        },
+        "cliente_bruno": {
+          "recebido_em_servidor_est": 34257,
+          "atraso_ms": 3,
+          "centro": [
+            608.8,
+            113,
+            0
+          ],
+          "pos_alvo_visto": [
+            600,
+            200
+          ],
+          "placar": {
+            "0": 3,
+            "1": 0
+          }
+        },
+        "motivo_servidor": {
+          "ent": 2,
+          "nome": "Bruno",
+          "pos": [
+            600,
+            200,
+            0
+          ],
+          "dist": 87.4,
+          "limite": 134,
+          "resultado": "atingido",
+          "angulo": 95.8,
+          "motivo": "distância 87,4 cm ≤ 134,0 cm; anteparo não cobre: impacto a 95.8° do eixo > 45.0° (metade de 90°)"
+        }
+      }
+    },
+    {
+      "ok": true,
+      "desc": "o ponto veio pela abertura lateral do Anteparo: distância 87,4 cm ≤ 134,0 cm; anteparo não cobre: impacto a 95.8° do eixo > 45.0° (metade de 90°)"
+    },
+    {
+      "ok": true,
+      "desc": "revanche aceita pelos dois e iniciada"
+    },
+    {
+      "ok": true,
+      "desc": "revanche: partida 2, lados trocados, mesmos equipamentos"
+    },
+    {
+      "ok": true,
+      "desc": "saída durante efeito: execução 17 cancelada e recursos liberados; partida em pausa aguardando Ana"
+    },
+    {
+      "ok": true,
+      "desc": "reconexão retoma o duelo (contagem)"
+    },
+    {
+      "ok": true,
+      "desc": "Travessia r2 publicada (sha256:32f639c3b1fc…)"
+    },
+    {
+      "ok": true,
+      "desc": "Contramaré antiga reproduz Travessia r1 (anel de 1 m) e o editor oferece r2"
+    },
+    {
+      "ok": true,
+      "desc": "editor compara as revisões antes da decisão"
+    },
+    {
+      "ok": true,
+      "desc": "aceitar mostra 1,5 m; desfazer a atualização volta a 1 m"
+    },
+    {
+      "ok": true,
+      "desc": "servidor reiniciado (pid 1348 → 1379); acervos recarregados do disco"
+    },
+    {
+      "ok": true,
+      "desc": "após reiniciar: Contramaré ainda aponta Travessia r1 e reproduz 1 m"
+    },
+    {
+      "ok": true,
+      "desc": "após reiniciar: aceitar → 1,5 m; desfazer → 1 m"
+    },
+    {
+      "ok": true,
+      "desc": "após reiniciar, a Contramaré r1 em jogo (servidor) anuncia o anel de 1 m"
+    },
+    {
+      "ok": true,
+      "desc": "previsão x servidor: centro (200, -70) (erro 0.0 cm), contato 296 ms (previsto ~290), T1 atingido, T2 fora",
+      "dados": {
+        "previsao": {
+          "escrita_em": "2026-11-18T16:49:28.306Z",
+          "regras": [
+            "Ao ativar → Passo r1 (executa Passo r1)",
+            "Ao ativar → Vigia do canal (por 200 ms, vigia quando o autor cruza para água)",
+            "Vigia do canal: ao cruzar para água → Respingo (disco de raio 1,20 m no ponto do evento que disparou; preparo 200 ms, contato 100 ms, impacto 1)"
+          ],
+          "centro": [
+            200,
+            -70
+          ],
+          "raio": 120,
+          "cruzamento_ms": 90,
+          "contato_ms_aprox": 290,
+          "alvos": {
+            "T1": {
+              "pos": [
+                300,
+                -70
+              ],
+              "previsto": "atingido"
+            },
+            "T2": {
+              "pos": [
+                200,
+                -250
+              ],
+              "previsto": "fora"
+            }
+          },
+          "controle_sem_agua": "nenhum anel"
+        },
+        "servidor": {
+          "centro": [
+            200,
+            -70,
+            0
+          ],
+          "raio": 120,
+          "contato_ms": 296,
+          "T1": "atingido",
+          "T2": "fora"
+        },
+        "erro_centro_cm": 0,
+        "controle_sem_agua_areas": 0
+      }
+    },
+    {
+      "ok": true,
+      "desc": "controle: sem cruzar o canal, a Esteira não cria anel"
+    },
+    {
+      "ok": true,
+      "desc": "latência variável: o 2º comando chegou em 800 ms (janela fechou em 750), julgado em 700 ms pela linha do tempo do jogador → comando (sem compensação: tarde)",
+      "dados": {
+        "comando_local_ms": 700,
+        "chegada_rel_ms": 800,
+        "julgado_rel_ms": 700,
+        "janela": [
+          450,
+          750
+        ],
+        "decisao_em_ms": 800,
+        "decisao": "comando",
+        "sem_compensacao_seria": "tarde"
+      }
+    },
+    {
+      "ok": true,
+      "desc": "entradas de Bruno com perda/duplicação: 10 de 11 aceitas no servidor"
+    },
+    {
+      "ok": true,
+      "desc": "comando duplicado (mesmo seq) descartado pelo servidor; 6 duplicata(s) no registro (inclui as injetadas pelo condicionador)"
+    },
+    {
+      "ok": true,
+      "desc": "cliente de Bruno observa os eventos com atraso mediano de 65 ms (descida configurada: 40 ms)"
+    }
+  ],
+  "secoes": {
+    "autoria_travessia": {
+      "passo_depois_pulso": {
+        "servidor": {
+          "centro": [
+            -300,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 1663,
+          "resultado": "atingido",
+          "motivo": "distância 90,0 cm ≤ 134,0 cm"
+        },
+        "cliente_ana": {
+          "centro": [
+            -300,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 1663,
+          "resultado": "atingido",
+          "motivo": "distância 90,0 cm ≤ 134,0 cm",
+          "recebido_em": 1665,
+          "atraso_ms": 2
+        },
+        "cliente_bruno": {
+          "centro": [
+            -300,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 1663,
+          "resultado": "atingido",
+          "motivo": "distância 90,0 cm ≤ 134,0 cm",
+          "recebido_em": 1666,
+          "atraso_ms": 3
+        },
+        "previsao_local": {
+          "tipo": "aceita",
+          "erro_destino_cm": 0,
+          "antecipacao_ms": 7
+        }
+      },
+      "pulso_depois_passo": {
+        "servidor": {
+          "centro": [
+            -600,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 2648,
+          "resultado": "fora",
+          "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm"
+        },
+        "cliente_ana": {
+          "centro": [
+            -600,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 2648,
+          "resultado": "fora",
+          "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm",
+          "recebido_em": 2657,
+          "atraso_ms": 9
+        },
+        "cliente_bruno": {
+          "centro": [
+            -600,
+            -250,
+            0
+          ],
+          "raio": 100,
+          "t": 2648,
+          "resultado": "fora",
+          "motivo": "distância 313,2 cm > raio 100 + cápsula 34 = 134,0 cm",
+          "recebido_em": 2657,
+          "atraso_ms": 9
+        }
+      },
+      "alvo": [
+        -300,
+        -160
+      ],
+      "autor_saida": [
+        -600,
+        -250
+      ]
+    },
+    "contramare_linha_do_tempo": [
+      {
+        "etapa": "Marca de saída",
+        "tipo": "instante",
+        "de": 0,
+        "ate": 0,
+        "manual": false,
+        "escopo": "raiz"
+      },
+      {
+        "etapa": "Passo",
+        "tipo": "deslocamento",
+        "de": 0,
+        "ate": 150,
+        "manual": false,
+        "escopo": "Passo r1"
+      },
+      {
+        "etapa": "Pulso",
+        "tipo": "preparo",
+        "de": 150,
+        "ate": 350,
+        "manual": false,
+        "escopo": "Pulso r1"
+      },
+      {
+        "etapa": "Pulso",
+        "tipo": "contato",
+        "de": 350,
+        "ate": 450,
+        "manual": false,
+        "escopo": "Pulso r1"
+      },
+      {
+        "etapa": "Janela de volta",
+        "tipo": "janela",
+        "de": 450,
+        "ate": 750,
+        "manual": false,
+        "escopo": "raiz"
+      },
+      {
+        "etapa": "Janela de volta",
+        "tipo": "confirmacao",
+        "de": 750,
+        "ate": 870,
+        "manual": false,
+        "escopo": "raiz"
+      },
+      {
+        "etapa": "Volta à marca",
+        "tipo": "deslocamento",
+        "de": 450,
+        "ate": 990,
+        "manual": true,
+        "escopo": "raiz"
+      }
+    ],
+    "contramare_regras": [
+      "Ao ativar → Marca de saída (guarda a posição atual do autor)",
+      "Marca de saída: depois de marcar → Travessia r1 (executa Travessia r1)",
+      "Travessia r1: quando Travessia r1 terminar → Janela de volta (abre janela de 300 ms (ao pressionar o mesmo botão))",
+      "Janela de volta: se o comando vier na janela → Volta à marca (volta ao destino em 120 ms (até 10,00 m))",
+      "Volta à marca usa o ponto guardado por Marca de saída"
+    ],
+    "contramare_comandos": [
+      {
+        "caso": "cedo",
+        "comando_ms": 300,
+        "enviado_ms_real": 299,
+        "julgado_rel_ms": 299,
+        "janela": [
+          450,
+          750
+        ],
+        "resultado": "expirou",
+        "pos_final": [
+          -300,
+          -250
+        ],
+        "voltou": false
+      },
+      {
+        "caso": "dentro",
+        "comando_ms": 600,
+        "enviado_ms_real": 599,
+        "julgado_rel_ms": 599,
+        "janela": [
+          450,
+          750
+        ],
+        "resultado": "comando",
+        "pos_final": [
+          -600,
+          -250
+        ],
+        "voltou": true
+      },
+      {
+        "caso": "tarde",
+        "comando_ms": 800,
+        "enviado_ms_real": 799,
+        "julgado_rel_ms": 799,
+        "janela": [
+          450,
+          750
+        ],
+        "resultado": "expirou",
+        "pos_final": [
+          -300,
+          -250
+        ],
+        "voltou": false
+      },
+      {
+        "caso": "ausente",
+        "comando_ms": null,
+        "enviado_ms_real": null,
+        "julgado_rel_ms": null,
+        "janela": [
+          450,
+          750
+        ],
+        "resultado": "expirou",
+        "pos_final": [
+          -300,
+          -250
+        ],
+        "voltou": false
+      }
+    ],
+    "anteparo": [
+      {
+        "caso": "frente (0°)",
+        "servidor": {
+          "centro": [
+            -80,
+            250,
+            0
+          ],
+          "raio": 100,
+          "t": 10152,
+          "resultado": "absorvido",
+          "motivo": "absorvido: impacto a 0.0° do eixo ≤ 45.0° (metade de 90°)"
+        },
+        "ana_ve_frente": {
+          "eixo_yaw": 180,
+          "abertura": 90,
+          "gesto": "bracos_cruzados",
+          "ativa_em_ms": 150
+        }
+      },
+      {
+        "caso": "flanco (90° do eixo)",
+        "servidor": {
+          "centro": [
+            0,
+            170,
+            0
+          ],
+          "raio": 100,
+          "t": 12616,
+          "resultado": "atingido",
+          "motivo": "distância 80,0 cm ≤ 134,0 cm; anteparo não cobre: impacto a 90.0° do eixo > 45.0° (metade de 90°)"
+        },
+        "ana_ve_frente": {
+          "eixo_yaw": 180,
+          "abertura": 90,
+          "gesto": "bracos_cruzados",
+          "ativa_em_ms": 150
+        }
+      }
+    ],
+    "equipamento": {
+      "ana0": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+      "ana1": "sha256:a54019dd2ba65289ed9d432724a140ac0601c27583b481c8ea832e47b0ccd120",
+      "ana2": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
+      "bruno0": "sha256:128798a61a9ddfd0babd19993ba131ea882d336ef9ac72cfbcdb3987077bbaf3",
+      "bruno2": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a"
+    },
+    "entrada_tardia": {
+      "resumo": true,
+      "areas": 0,
+      "guardas": 1,
+      "fase": "duelo"
+    },
+    "impacto_decisivo": {
+      "servidor": {
+        "t": 34254,
+        "centro": [
+          608.8,
+          113,
+          0
+        ],
+        "raio": 100,
+        "alvo": "Bruno",
+        "pos_alvo": [
+          600,
+          200,
+          0
+        ],
+        "dist_cm": 87.4,
+        "digest": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+        "placar": {
+          "0": 3,
+          "1": 0
+        }
+      },
+      "cliente_ana": {
+        "recebido_em_servidor_est": 34257,
+        "atraso_ms": 3,
+        "centro": [
+          608.8,
+          113,
+          0
+        ],
+        "pos_alvo_visto": [
+          600,
+          200
+        ],
+        "placar": {
+          "0": 3,
+          "1": 0
+        }
+      },
+      "cliente_bruno": {
+        "recebido_em_servidor_est": 34257,
+        "atraso_ms": 3,
+        "centro": [
+          608.8,
+          113,
+          0
+        ],
+        "pos_alvo_visto": [
+          600,
+          200
+        ],
+        "placar": {
+          "0": 3,
+          "1": 0
+        }
+      },
+      "motivo_servidor": {
+        "ent": 2,
+        "nome": "Bruno",
+        "pos": [
+          600,
+          200,
+          0
+        ],
+        "dist": 87.4,
+        "limite": 134,
+        "resultado": "atingido",
+        "angulo": 95.8,
+        "motivo": "distância 87,4 cm ≤ 134,0 cm; anteparo não cobre: impacto a 95.8° do eixo > 45.0° (metade de 90°)"
+      }
+    },
+    "revisoes": {
+      "travessia_r1": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+      "travessia_r2": "sha256:32f639c3b1fcadcb99bd33199e4e4bcdb81c01444db2b83184975fad85594eb0",
+      "contramare_usa": {
+        "no": "n2",
+        "digest": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+        "criacao": "cr-travessia",
+        "nome": "Travessia",
+        "revisao": 1,
+        "ultima_revisao": 2,
+        "ultima_digest": "sha256:32f639c3b1fcadcb99bd33199e4e4bcdb81c01444db2b83184975fad85594eb0",
+        "desatualizada": true
+      },
+      "comparar": {
+        "dependencias": [
+          {
+            "no": "n2",
+            "de": {
+              "criacao": "cr-pulso",
+              "revisao": 1,
+              "nome": "Pulso"
+            },
+            "para": {
+              "criacao": "cr-pulso",
+              "revisao": 2,
+              "nome": "Pulso"
+            },
+            "digest_de": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
+            "digest_para": "sha256:c9ac4929cd9e3f9f2f064dc77e6f9cbfe7f8fa865c12c95a2646d5d37a2e1388"
+          }
+        ]
+      },
+      "diferenca_oferecida": [
+        {
+          "no": "n2",
+          "de": {
+            "criacao": "cr-pulso",
+            "revisao": 1,
+            "nome": "Pulso"
+          },
+          "para": {},
+          "digest_de": "sha256:0392d494550fd5077c54332981634e28f96e06eab6e0c805f5d0a53f5cbed58a",
+          "digest_para": "sha256:c9ac4929cd9e3f9f2f064dc77e6f9cbfe7f8fa865c12c95a2646d5d37a2e1388"
+        }
+      ],
+      "raio_antiga": 100,
+      "raio_apos_aceitar": 150,
+      "raio_apos_desfazer": 100
+    },
+    "reinicio": {
+      "pid_antes": 1348,
+      "pid_depois": 1379,
+      "contramare_dep": {
+        "no": "n2",
+        "digest": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+        "criacao": "cr-travessia",
+        "nome": "Travessia",
+        "revisao": 1,
+        "ultima_revisao": 2,
+        "ultima_digest": "sha256:32f639c3b1fcadcb99bd33199e4e4bcdb81c01444db2b83184975fad85594eb0",
+        "desatualizada": true
+      },
+      "raio_r1_simulado": 100,
+      "raio_em_jogo": 100
+    },
+    "surpresa": {
+      "previsao": {
+        "escrita_em": "2026-11-18T16:49:28.306Z",
+        "regras": [
+          "Ao ativar → Passo r1 (executa Passo r1)",
+          "Ao ativar → Vigia do canal (por 200 ms, vigia quando o autor cruza para água)",
+          "Vigia do canal: ao cruzar para água → Respingo (disco de raio 1,20 m no ponto do evento que disparou; preparo 200 ms, contato 100 ms, impacto 1)"
+        ],
+        "centro": [
+          200,
+          -70
+        ],
+        "raio": 120,
+        "cruzamento_ms": 90,
+        "contato_ms_aprox": 290,
+        "alvos": {
+          "T1": {
+            "pos": [
+              300,
+              -70
+            ],
+            "previsto": "atingido"
+          },
+          "T2": {
+            "pos": [
+              200,
+              -250
+            ],
+            "previsto": "fora"
+          }
+        },
+        "controle_sem_agua": "nenhum anel"
+      },
+      "servidor": {
+        "centro": [
+          200,
+          -70,
+          0
+        ],
+        "raio": 120,
+        "contato_ms": 296,
+        "T1": "atingido",
+        "T2": "fora"
+      },
+      "erro_centro_cm": 0,
+      "controle_sem_agua_areas": 0
+    },
+    "rede": {
+      "configuracao": {
+        "Ana": {
+          "lag_subida_ms": 100,
+          "lag_descida_ms": 100,
+          "nota": "a subida passa de 0 para 100 ms entre a ativação e o 2º comando"
+        },
+        "Bruno": {
+          "lag_subida_ms": 80,
+          "lag_descida_ms": 40,
+          "perda_subida": 0.05,
+          "perda_descida": 0.05,
+          "duplicar": 0.25
+        }
+      },
+      "medido": {
+        "Ana": {
+          "rtt_estimado_ms": 112,
+          "condicionador": {
+            "lag_subida_ms": 100,
+            "lag_descida_ms": 100,
+            "jitter_ms": 0,
+            "perda_subida": 0,
+            "perda_descida": 0,
+            "duplicar": 0,
+            "descartadas_subida": 0,
+            "descartadas_descida": 0,
+            "retransmitidas_subida": 0,
+            "retransmitidas_descida": 0,
+            "duplicadas": 0
+          }
+        },
+        "Bruno": {
+          "rtt_estimado_ms": 72,
+          "condicionador": {
+            "lag_subida_ms": 80,
+            "lag_descida_ms": 40,
+            "jitter_ms": 0,
+            "perda_subida": 0.05,
+            "perda_descida": 0.05,
+            "duplicar": 0.25,
+            "descartadas_subida": 1,
+            "descartadas_descida": 8,
+            "retransmitidas_subida": 5,
+            "retransmitidas_descida": 3,
+            "duplicadas": 5
+          }
+        }
+      },
+      "autoritativo": {
+        "compensacao_ana": {
+          "comando_local_ms": 700,
+          "chegada_rel_ms": 800,
+          "julgado_rel_ms": 700,
+          "janela": [
+            450,
+            750
+          ],
+          "decisao_em_ms": 800,
+          "decisao": "comando",
+          "sem_compensacao_seria": "tarde"
+        },
+        "entradas_bruno": [
+          {
+            "seq": 3,
+            "t_est": 6355,
+            "t_julgado": 6448,
+            "chegada": 6448,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 4,
+            "t_est": 6749,
+            "t_julgado": 6832,
+            "chegada": 6832,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 5,
+            "t_est": 7376,
+            "t_julgado": 7577,
+            "chegada": 7697,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 6,
+            "t_est": 7998,
+            "t_julgado": 8080,
+            "chegada": 8080,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 7,
+            "t_est": 8385,
+            "t_julgado": 8464,
+            "chegada": 8464,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 8,
+            "t_est": 8769,
+            "t_julgado": 8848,
+            "chegada": 8848,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 9,
+            "t_est": 9405,
+            "t_julgado": 9472,
+            "chegada": 9472,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 10,
+            "t_est": 9789,
+            "t_julgado": 9856,
+            "chegada": 9856,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 11,
+            "t_est": 10172,
+            "t_julgado": 0,
+            "chegada": 10240,
+            "aceita": false,
+            "motivo": "em recuperação por mais 74 ms"
+          },
+          {
+            "seq": 12,
+            "t_est": 10557,
+            "t_julgado": 10624,
+            "chegada": 10624,
+            "aceita": true,
+            "motivo": ""
+          },
+          {
+            "seq": 90000,
+            "t_est": 10942,
+            "t_julgado": 11009,
+            "chegada": 11009,
+            "aceita": true,
+            "motivo": ""
+          }
+        ],
+        "duplicadas_descartadas": 6
+      },
+      "observado_cliente_bruno": {
+        "eventos": 19,
+        "atraso_ms_mediana": 65,
+        "atraso_ms_p95": 293,
+        "atraso_ms_max": 293
+      },
+      "deduplicacao_manual": {
+        "respostas": [
+          {
+            "ok": true,
+            "duplicado": false,
+            "motivo": ""
+          },
+          {
+            "ok": false,
+            "duplicado": true,
+            "motivo": "comando duplicado ignorado (seq já processado)"
+          }
+        ],
+        "segundo": {
+          "ok": false,
+          "duplicado": true,
+          "motivo": "comando duplicado ignorado (seq já processado)"
+        }
+      }
+    }
+  },
+  "processos": {
+    "servidor_pid": 1348,
+    "ana_pid": 1349,
+    "bruno_pid": 1350,
+    "orquestrador_pid": 1341
+  },
+  "fim": "2026-11-18T16:49:39.754Z",
+  "aprovadas": 50,
+  "falhas": 0,
+  "ids": {
+    "passo": "cr-passo",
+    "pulso": "cr-pulso",
+    "travessia": "cr-travessia",
+    "travessia_digest": "sha256:d74c65bedf6b6376a5601733578f3e89572ef5a4d08cbe134915db2cb0fc150a",
+    "invertida": "cr-travessia-invertida",
+    "contramare": "cr-contramar",
+    "anteparo": "cr-anteparo",
+    "pulso_bruno": "cr-pulso",
+    "esteira": "cr-esteira"
+  }
+}

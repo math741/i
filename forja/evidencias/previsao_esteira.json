@@ -1,0 +1,32 @@
+{
+  "escrita_em": "2026-11-18T16:49:28.306Z",
+  "regras": [
+    "Ao ativar → Passo r1 (executa Passo r1)",
+    "Ao ativar → Vigia do canal (por 200 ms, vigia quando o autor cruza para água)",
+    "Vigia do canal: ao cruzar para água → Respingo (disco de raio 1,20 m no ponto do evento que disparou; preparo 200 ms, contato 100 ms, impacto 1)"
+  ],
+  "centro": [
+    200,
+    -70
+  ],
+  "raio": 120,
+  "cruzamento_ms": 90,
+  "contato_ms_aprox": 290,
+  "alvos": {
+    "T1": {
+      "pos": [
+        300,
+        -70
+      ],
+      "previsto": "atingido"
+    },
+    "T2": {
+      "pos": [
+        200,
+        -250
+      ],
+      "previsto": "fora"
+    }
+  },
+  "controle_sem_agua": "nenhum anel"
+}

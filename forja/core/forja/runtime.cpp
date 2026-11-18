@@ -71,7 +71,7 @@ int Runtime::add_entity(EntKind k, int team, const std::string& nome, Vec3 pos, 
     if (k == EntKind::Alvo) { e.speed = 0; }
     ents_.push_back(e);
     Json d = Json::obj();
-    d.set("ent", e.id); d.set("nome", nome); d.set("tipo", k == EntKind::Alvo ? "alvo" : "jogador"); d.set("time", team); d.set("pos", jv(pos)); d.set("yaw", yaw);
+    d.set("ent", e.id); d.set("nome", nome); d.set("classe", k == EntKind::Alvo ? "alvo" : "jogador"); d.set("time", team); d.set("pos", jv(pos)); d.set("yaw", yaw);
     emit("entidade.nova", d);
     return e.id;
 }
@@ -180,13 +180,13 @@ int Runtime::areas_ativas() const {
     return n;
 }
 
-Runtime::Act Runtime::activate(int entid, int slot, std::shared_ptr<const Plan> plan, int64_t t, double aim_yaw, Vec3 aim_point) {
+Runtime::Act Runtime::activate(int entid, int slot, std::shared_ptr<const Plan> plan, int64_t t, double aim_yaw, Vec3 aim_point, int64_t t_cli) {
     advance(t);
     Act r;
     Entity* e = ent(entid);
     if (!e || !e->ativo) { r.motivo = "entidade inativa"; return r; }
     if (uint32_t live = alive_exec_of(entid, slot)) {
-        command(entid, slot, false, false, t, t);
+        r.t_julgado = command(entid, slot, false, false, t_cli == kSemRelogio ? t : t_cli, t);
         r.ok = true; r.exec = live; r.foi_comando = true;
         return r;
     }
@@ -212,6 +212,7 @@ Runtime::Act Runtime::activate(int entid, int slot, std::shared_ptr<const Plan> 
     ex.owner = entid; ex.slot = slot; ex.plan = plan; ex.t0 = t;
     ex.deadline = t + plan->max_dur_ms + 2 * rules_.tolerancia_ms + 100;
     ex.origin = e->pos; ex.yaw0 = e->yaw; ex.aim_yaw = aim_yaw; ex.aim_point = aim_point;
+    ex.t_cli0 = t_cli == kSemRelogio ? t : t_cli;
     ex.scopes.push_back(ScopeInst());
     execs_[ex.id] = ex;
     if (!sem_recarga) {
@@ -229,20 +230,26 @@ Runtime::Act Runtime::activate(int entid, int slot, std::shared_ptr<const Plan> 
     advance(t);
     r.ok = true;
     r.exec = ex.id;
+    r.t_julgado = t;
     return r;
 }
 
-void Runtime::command(int entid, int slot, bool soltar, bool secundario, int64_t tj, int64_t tnow) {
+int64_t Runtime::command(int entid, int slot, bool soltar, bool secundario, int64_t t_cli, int64_t tnow) {
     advance(tnow);
     int type = secundario ? 2 : (soltar ? 1 : 0);
     bool any = false;
+    int64_t tj_out = tnow;
     for (auto& kv : execs_) {
         Exec& ex = kv.second;
         if (!ex.alive || ex.owner != entid || ex.slot != slot) continue;
         any = true;
+        int64_t tj = tnow;
+        if (t_cli != kSemRelogio && ex.t_cli0 != kSemRelogio) tj = ex.t0 + (t_cli - ex.t_cli0);
+        tj = std::max(tnow - static_cast<int64_t>(rules_.tolerancia_ms), std::min(tnow, tj));
+        tj_out = tj;
         ex.presses.push_back({tj, type});
         Json rec = Json::obj();
-        rec.set("t", tnow); rec.set("t_julgado", tj); rec.set("comando", type == 0 ? "pressionar" : (type == 1 ? "soltar" : "secundario"));
+        rec.set("t", tnow); rec.set("t_julgado", tj); rec.set("t_cliente", t_cli == kSemRelogio ? tnow : t_cli); rec.set("comando", type == 0 ? "pressionar" : (type == 1 ? "soltar" : "secundario"));
         emit("cmd.recebido", rec, ex.id);
         std::vector<uint32_t> ws;
         for (auto& wk : windows_) if (wk.second.exec == ex.id && !wk.second.decidida) ws.push_back(wk.first);
@@ -279,6 +286,7 @@ void Runtime::command(int entid, int slot, bool soltar, bool secundario, int64_t
         emit("cmd.ignorado", d);
     }
     advance(tnow);
+    return tj_out;
 }
 
 Guard* Runtime::find_guard(uint32_t gid, Entity** owner) {
