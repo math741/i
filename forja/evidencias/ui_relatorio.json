@@ -1,0 +1,28 @@
+{
+  "inicio": "2026-11-18T17:38:18.109Z",
+  "verificacoes": [
+    {
+      "ok": true,
+      "desc": "sala UXXK: Ana criou, Bruno entrou pelo código"
+    },
+    {
+      "ok": true,
+      "desc": "treino compartilhado iniciado pelo botão Treino"
+    }
+  ],
+  "capturas": [],
+  "fps": {},
+  "ambiente": {
+    "navegador": "Chromium 157.0.8103.78 headless",
+    "render": "SwiftShader (CPU, sem GPU)",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "nucleos": 4,
+    "ram_gb": 16,
+    "resolucao": "1280x720",
+    "captura": "canvas.toDataURL no instante do evento + Playwright page.screenshot"
+  },
+  "erro": "page.fill: Target page, context or browser has been closed\n    at novaCriacao (/home/user/i/forja/tests/ui/percurso_ui.mjs:46:47)\n    at /home/user/i/forja/tests/ui/percurso_ui.mjs:106:9",
+  "fim": "2026-11-18T17:39:09.747Z",
+  "falhas": 1,
+  "aprovadas": 2
+}

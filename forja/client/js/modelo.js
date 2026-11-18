@@ -93,9 +93,9 @@ export class Mundo {
       }
       case 'area.fim': { const a = this.areas.get(e.id); if (a) { a.fase = 'fim'; a.t_fim_real = e.t; setTimeout(() => this.areas.delete(e.id), 900); } break; }
       case 'area.cancelada': { const a = this.areas.get(e.id); if (a) { a.fase = 'cancelada'; a.t_fim_real = e.t; setTimeout(() => this.areas.delete(e.id), 700); } break; }
-      case 'guarda.inicio': this.guardas.set(e.id, { ...e }); break;
-      case 'guarda.absorve': { const g = this.guardas.get(e.id); if (g) { g.ultima_absorcao = e; g.cargas = e.cargas; } this.impactos.push({ ...e, absorvido: true, visto: tServ }); break; }
-      case 'guarda.fim': { const g = this.guardas.get(e.id); if (g) { g.fim = e; setTimeout(() => this.guardas.delete(e.id), e.motivo === 'rompida' ? 600 : 250); } break; }
+      case 'guarda.inicio': this.guardas.set(e.id, { ...e, absorcoes: [] }); break;
+      case 'guarda.absorve': { const g = this.guardas.get(e.id); if (g) { g.ultima_absorcao = e; g.cargas = e.cargas; g.absorcoes.push(e); } this.impactos.push({ ...e, absorvido: true, visto: tServ }); break; }
+      case 'guarda.fim': { const g = this.guardas.get(e.id); if (g) { g.fim = e; setTimeout(() => this.guardas.delete(e.id), 1000); } break; }
       case 'janela.abre': this.janelas.set(e.id, { ...e }); break;
       case 'janela.resultado': for (const [k, j] of this.janelas) if (j.exec === e.exec && j.no === e.no) { j.resultado = e.resultado; setTimeout(() => this.janelas.delete(k), 500); } break;
       case 'marca': this.marcas.push({ ...e }); if (this.marcas.length > 8) this.marcas.shift(); break;
@@ -152,6 +152,7 @@ export class Mundo {
     const u = a[a.length - 1];
     return [u.x, u.y];
   }
+  info(id) { const e = this.ent.get(id); return e ? { recup: e.recup, folego: e.folego } : {}; }
   yaw(id) {
     if (id === this.meuEnt && this.local) return this.entrada.yaw;
     const e = this.ent.get(id);
